@@ -2815,6 +2815,7 @@ function fetchCloudPL(silent){
       dirtyKeys.forEach(function(k){ if(PL[k]!==undefined) records[k]=PL[k]; });
       PL=records;
       savePLLocal();
+      applyOverridesToDB();
       cloudReady=true;
       setSyncIndicator('synced');
       if(curState)renderPanel();
@@ -2844,6 +2845,7 @@ function pushCloudPL(){
         if(r.ok){
           PL=cloudRecords;
           savePLLocal();
+          applyOverridesToDB();
           keysToPush.forEach(function(k){dirtyKeys.delete(k);});
           setSyncIndicator('synced');
         } else setSyncIndicator('offline');
@@ -2918,6 +2920,25 @@ Object.entries(SI).forEach(([state,info])=>{
   });
   DB[state]=real;
 });
+
+// Re-stamp DB entries with the latest PL overrides (needed after every cloud sync,
+// since stage is looked up live but type/cms/slots/tables are cached on the DB object)
+function applyOverridesToDB(){
+  Object.keys(PL).forEach(function(key){
+    const sep=key.indexOf('||');
+    if(sep<0)return;
+    const state=key.slice(0,sep), name=key.slice(sep+2);
+    const list=DB[state];
+    if(!list)return;
+    const i=list.findIndex(function(x){return x.name===name;});
+    if(i<0)return;
+    const rec=PL[key];
+    if(rec.type)list[i].type=rec.type;
+    if(rec.cms)list[i].cms=rec.cms;
+    if(rec.slots!==undefined)list[i].slots=rec.slots;
+    if(rec.tables!==undefined)list[i].tables=rec.tables;
+  });
+}
 
 // ── MAP SETUP ────────────────────────────────────────────────────────────────
 let curState=null,curList=[],curIdx=null;
