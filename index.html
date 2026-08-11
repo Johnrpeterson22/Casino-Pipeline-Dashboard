@@ -691,7 +691,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 #ph{padding:9px 34px 9px 11px;background:#f7f6f2;border-bottom:1px solid #e5e3de;flex-shrink:0;}
 #ph h3{font-size:13px;font-weight:600;margin:0 0 2px;}
 #ph .sub{font-size:11px;color:#777;}
-#stagebar{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;padding:5px 7px;background:#f7f6f2;border-bottom:1px solid #eee;flex-shrink:0;}
+#stagebar{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;padding:5px 7px;background:#f7f6f2;border-bottom:1px solid #eee;flex-shrink:0;}
 .psb{border-radius:5px;padding:5px 3px;text-align:center;}
 .psb .pl{font-size:8px;color:rgba(255,255,255,.85);overflow:hidden;white-space:nowrap;}
 .psb .pv{font-size:15px;font-weight:700;color:#fff;}
@@ -751,14 +751,17 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
   <input id="s-search" type="text" placeholder="Search casino…"/>
   <select id="s-type"><option value="">All types</option><option value="Tribal">Tribal</option><option value="Commercial">Commercial</option><option value="Racino">Racino</option></select>
   <select id="s-cms"><option value="">All CMS</option><option value="Konami">Konami</option><option value="LW">LW</option><option value="Aristocrat">Aristocrat</option><option value="IGT">IGT</option><option value="CasinoTrac">CasinoTrac</option><option value="ATI">ATI</option></select>
-  <select id="s-stage"><option value="">All stages</option><option value="0">Prospect</option><option value="1">Reached out</option><option value="2">Meeting set</option><option value="3">Signed contract</option><option value="4">Live property</option></select>
+  <select id="s-stage"><option value="">All stages</option><option value="0">Prospect</option><option value="1">Meeting</option><option value="2">Verbal</option><option value="3">Proposal</option><option value="4">Signed</option><option value="5">Live</option></select>
   <select id="s-sort"><option value="name">Sort: A–Z</option><option value="stage-asc">Stage ↑</option><option value="stage-desc">Stage ↓</option></select>
   <button id="btn-reset">↺ Reset</button>
+  <button id="btn-restore" title="Show hidden properties again" style="height:30px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;">👁 Restore hidden</button>
+  <button id="sf-connect-btn" onclick="sfConnect()" style="height:30px;padding:0 10px;border-radius:6px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.55);font-size:11px;font-weight:600;cursor:pointer;">☁ Connect Salesforce</button>
+  <span id="sf-ind" style="font-size:11px;color:rgba(255,255,255,.5);margin-right:4px;"></span>
   <span id="sync-ind" style="font-size:11px;color:#999;margin-left:4px;">⟳ Loading…</span>
   <span style="color:rgba(255,255,255,.3);font-size:14px;">|</span>
   <span style="font-size:11px;color:rgba(255,255,255,.6);">Map view:</span>
-  <button id="btn-view-markers" class="view-btn active-view">🏦 Marker Trax</button>
-  <button id="btn-view-cashless" class="view-btn">💳 Cashless</button>
+  <button id="btn-view-moolah" class="view-btn active-view">🏦 Moolah Play</button>
+  <button id="btn-view-Koin" class="view-btn">💳 Koin</button>
 </div>
 <div id="legbar"></div>
 <div id="main">
@@ -768,10 +771,11 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
     <div id="ph"><h3 id="ph-t">Select a state</h3><div class="sub" id="ph-s">Click any state pin on the map</div></div>
     <div id="stagebar">
       <div class="psb" style="background:#dc2626"><div class="pl">Prospect</div><div class="pv" id="ps0">—</div></div>
-      <div class="psb" style="background:#ea580c"><div class="pl">Reached out</div><div class="pv" id="ps1">—</div></div>
-      <div class="psb" style="background:#ca8a04"><div class="pl">Meeting</div><div class="pv" id="ps2">—</div></div>
-      <div class="psb" style="background:#16a34a"><div class="pl">Contracted</div><div class="pv" id="ps3">—</div></div>
-      <div class="psb" style="background:#15803d"><div class="pl">Live</div><div class="pv" id="ps4">—</div></div>
+      <div class="psb" style="background:#ea580c"><div class="pl">Meeting</div><div class="pv" id="ps1">—</div></div>
+      <div class="psb" style="background:#f59e0b"><div class="pl">Verbal</div><div class="pv" id="ps2">—</div></div>
+      <div class="psb" style="background:#3b82f6"><div class="pl">Proposal</div><div class="pv" id="ps3">—</div></div>
+      <div class="psb" style="background:#16a34a"><div class="pl">Signed</div><div class="pv" id="ps4">—</div></div>
+      <div class="psb" style="background:#15803d"><div class="pl">Live</div><div class="pv" id="ps5">—</div></div>
     </div>
     <div id="sumrow">
       <div class="sb"><div class="sl">Shown</div><div class="sv" id="sv-t">—</div></div>
@@ -790,6 +794,7 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
           <span class="npos" id="d-pos"></span>
           <button class="nb" id="d-prev">←</button>
           <button class="nb" id="d-next">→</button>
+          <button class="nb" id="d-hide" style="color:#dc2626;border-color:#dc2626;">🗑 Hide</button>
           <button class="nb" id="d-x">✕ Back</button>
         </div>
       </div>
@@ -811,11 +816,12 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
 "use strict";
 
 const STAGES=[
-  {label:'Prospect',        short:'Prospect',   color:'#dc2626'},
-  {label:'Reached out',     short:'Reached out',color:'#ea580c'},
-  {label:'Meeting set',     short:'Meeting set',color:'#ca8a04'},
-  {label:'Signed contract', short:'Contracted', color:'#16a34a'},
-  {label:'Live property',   short:'Live',        color:'#15803d'},
+  {label:'Prospect', short:'Prospect', color:'#dc2626'},
+  {label:'Meeting',  short:'Meeting',  color:'#ea580c'},
+  {label:'Verbal',   short:'Verbal',   color:'#f59e0b'},
+  {label:'Proposal', short:'Proposal', color:'#3b82f6'},
+  {label:'Signed',   short:'Signed',   color:'#16a34a'},
+  {label:'Live',     short:'Live',     color:'#15803d'},
 ];
 const CMS_BY_TYPE={
   Tribal:    ['Konami','LW','Aristocrat','IGT','CasinoTrac','ATI'],
@@ -878,49 +884,49 @@ const SI={
   'Wyoming':{lat:43.0,lon:-107.5,t:1,c:0,r:0},
 };
 const REG_STATUS={
-  'Nevada':        {cashless:'yes',     credit:'yes',     cashless_short:'Full digital wallet live (2020)',         credit_short:'Full markers – criminal enforcement'},
-  'California':    {cashless:'yes',     credit:'partial', cashless_short:'Major tribal operators live',              credit_short:'Compact-dep. – large props OK'},
-  'Oklahoma':      {cashless:'yes',     credit:'partial', cashless_short:'Select tribal operators live',             credit_short:'WinStar / Hard Rock Tulsa yes'},
-  'Pennsylvania':  {cashless:'yes',     credit:'yes',     cashless_short:'PGCB approved – live',                    credit_short:'Fully approved'},
-  'Indiana':       {cashless:'yes',     credit:'yes',     cashless_short:'IGC approved – live',                     credit_short:'Fully approved'},
-  'Iowa':          {cashless:'yes',     credit:'yes',     cashless_short:'IRGC approved – live',                    credit_short:'Fully approved'},
-  'Ohio':          {cashless:'yes',     credit:'yes',     cashless_short:'OCCC approved – live',                    credit_short:'Fully approved'},
-  'Florida':       {cashless:'yes',     credit:'partial', cashless_short:'Seminole Hard Rock live',                 credit_short:'Seminole properties only'},
-  'Louisiana':     {cashless:'yes',     credit:'yes',     cashless_short:'LGCB approved Feb 2023',                  credit_short:'Fully approved – commercial'},
-  'Mississippi':   {cashless:'yes',     credit:'yes',     cashless_short:'MGC approved Feb 2023',                   credit_short:'Fully approved – civil enforcement'},
-  'Missouri':      {cashless:'yes',     credit:'yes',     cashless_short:'MGC approved Feb 2023',                   credit_short:'Fully approved – riverboats'},
-  'New Jersey':    {cashless:'partial', credit:'yes',     cashless_short:'Rolling out – Borgata/HR live',           credit_short:'Fully approved – all 9 AC props'},
-  'Michigan':      {cashless:'partial', credit:'partial', cashless_short:'Commercial live, tribal rolling',          credit_short:'Commercial yes, tribal varies'},
-  'Illinois':      {cashless:'partial', credit:'yes',     cashless_short:'Rivers/Hard Rock deploying',              credit_short:'Fully approved'},
-  'Maryland':      {cashless:'partial', credit:'yes',     cashless_short:'MGM National Harbor live',                credit_short:'Fully approved'},
-  'Massachusetts': {cashless:'partial', credit:'yes',     cashless_short:'Encore Boston Harbor piloting',           credit_short:'Approved – premium patrons'},
-  'New York':      {cashless:'partial', credit:'yes',     cashless_short:'Resorts World NYC / Empire City live',    credit_short:'Fully approved'},
-  'Colorado':      {cashless:'partial', credit:'yes',     cashless_short:'Black Hawk implementing',                 credit_short:'Fully approved'},
-  'Connecticut':   {cashless:'partial', credit:'yes',     cashless_short:'Foxwoods / Mohegan piloting',             credit_short:'Both properties active'},
-  'Minnesota':     {cashless:'partial', credit:'partial', cashless_short:'Mystic Lake / Treasure Island live',      credit_short:'Larger tribal props only'},
-  'Wisconsin':     {cashless:'partial', credit:'partial', cashless_short:'Potawatomi Milwaukee live',               credit_short:'Potawatomi yes, others vary'},
-  'Arizona':       {cashless:'partial', credit:'partial', cashless_short:'Talking Stick live',                      credit_short:'Compact-specific'},
-  'Kansas':        {cashless:'partial', credit:'yes',     cashless_short:'State casinos implementing',              credit_short:'Approved – state-managed'},
-  'South Dakota':  {cashless:'partial', credit:'yes',     cashless_short:'Deadwood props rolling out',              credit_short:'Approved – Deadwood commercial'},
-  'Oregon':        {cashless:'partial', credit:'partial', cashless_short:'Spirit Mtn / Chinook Winds',              credit_short:'Limited – larger tribal only'},
-  'North Carolina':{cashless:'partial', credit:'partial', cashless_short:"Harrah's Cherokee live",                  credit_short:"Harrah's Cherokee – EBCI compact"},
-  'Washington':    {cashless:'pending', credit:'no',      cashless_short:'Compact amendments in progress',          credit_short:'PROHIBITED by state law – RCW 9.46'},
-  'Nebraska':      {cashless:'pending', credit:'partial', cashless_short:'Framework in development',                credit_short:'New market – developing'},
-  'Virginia':      {cashless:'pending', credit:'yes',     cashless_short:'Expected approval 2025',                  credit_short:'Approved – VA Lottery Board'},
-  'Arkansas':      {cashless:'pending', credit:'yes',     cashless_short:'Saracen/Oaklawn in discussion',           credit_short:'Permitted'},
-  'Maine':         {cashless:'pending', credit:'yes',     cashless_short:'Oxford/Hollywood discussing',             credit_short:'Permitted'},
-  'New Mexico':    {cashless:'no',      credit:'partial', cashless_short:'No compact provisions yet',               credit_short:'Limited – Inn of Mountain Gods'},
-  'North Dakota':  {cashless:'no',      credit:'partial', cashless_short:'Conservative reg environment',            credit_short:'Four Bears limited'},
-  'Montana':       {cashless:'no',      credit:'partial', cashless_short:'VLT-based – N/A',                        credit_short:'Small-scale tribal only'},
-  'Idaho':         {cashless:'no',      credit:'partial', cashless_short:'Compacts silent',                         credit_short:"Limited – Coeur d'Alene only"},
-  'Alabama':       {cashless:'no',      credit:'partial', cashless_short:'Wind Creek not deployed',                 credit_short:'Wind Creek Atmore/Montgomery yes'},
-  'Rhode Island':  {cashless:'no',      credit:'yes',     cashless_short:'State lottery – N/A',                    credit_short:'Permitted'},
-  'Delaware':      {cashless:'no',      credit:'yes',     cashless_short:'Lottery facilities – N/A',               credit_short:'Permitted'},
-  'West Virginia': {cashless:'no',      credit:'yes',     cashless_short:'WV Lottery not yet approved',             credit_short:'Permitted'},
-  'Kentucky':      {cashless:'no',      credit:'no',      cashless_short:'HHR racinos – N/A',                      credit_short:'Not applicable – HHR only'},
-  'Wyoming':       {cashless:'no',      credit:'partial', cashless_short:'No compact provision',                    credit_short:'Informal – limited'},
-  'Alaska':        {cashless:'no',      credit:'no',      cashless_short:'Bingo/pull-tabs only',                   credit_short:'No casino floor'},
-  'Texas':         {cashless:'no',      credit:'partial', cashless_short:'Kickapoo – not deployed',                credit_short:'Kickapoo Lucky Eagle only'},
+  'Nevada':        {Koin:'yes',     credit:'yes',     Koin_short:'Full digital wallet live (2020)',         credit_short:'Full markers – criminal enforcement'},
+  'California':    {Koin:'yes',     credit:'partial', Koin_short:'Major tribal operators live',              credit_short:'Compact-dep. – large props OK'},
+  'Oklahoma':      {Koin:'yes',     credit:'partial', Koin_short:'Select tribal operators live',             credit_short:'WinStar / Hard Rock Tulsa yes'},
+  'Pennsylvania':  {Koin:'yes',     credit:'yes',     Koin_short:'PGCB approved – live',                    credit_short:'Fully approved'},
+  'Indiana':       {Koin:'yes',     credit:'yes',     Koin_short:'IGC approved – live',                     credit_short:'Fully approved'},
+  'Iowa':          {Koin:'yes',     credit:'yes',     Koin_short:'IRGC approved – live',                    credit_short:'Fully approved'},
+  'Ohio':          {Koin:'yes',     credit:'yes',     Koin_short:'OCCC approved – live',                    credit_short:'Fully approved'},
+  'Florida':       {Koin:'yes',     credit:'partial', Koin_short:'Seminole Hard Rock live',                 credit_short:'Seminole properties only'},
+  'Louisiana':     {Koin:'yes',     credit:'yes',     Koin_short:'LGCB approved Feb 2023',                  credit_short:'Fully approved – commercial'},
+  'Mississippi':   {Koin:'yes',     credit:'yes',     Koin_short:'MGC approved Feb 2023',                   credit_short:'Fully approved – civil enforcement'},
+  'Missouri':      {Koin:'yes',     credit:'yes',     Koin_short:'MGC approved Feb 2023',                   credit_short:'Fully approved – riverboats'},
+  'New Jersey':    {Koin:'partial', credit:'yes',     Koin_short:'Rolling out – Borgata/HR live',           credit_short:'Fully approved – all 9 AC props'},
+  'Michigan':      {Koin:'partial', credit:'partial', Koin_short:'Commercial live, tribal rolling',          credit_short:'Commercial yes, tribal varies'},
+  'Illinois':      {Koin:'partial', credit:'yes',     Koin_short:'Rivers/Hard Rock deploying',              credit_short:'Fully approved'},
+  'Maryland':      {Koin:'partial', credit:'yes',     Koin_short:'MGM National Harbor live',                credit_short:'Fully approved'},
+  'Massachusetts': {Koin:'partial', credit:'yes',     Koin_short:'Encore Boston Harbor piloting',           credit_short:'Approved – premium patrons'},
+  'New York':      {Koin:'partial', credit:'yes',     Koin_short:'Resorts World NYC / Empire City live',    credit_short:'Fully approved'},
+  'Colorado':      {Koin:'partial', credit:'yes',     Koin_short:'Black Hawk implementing',                 credit_short:'Fully approved'},
+  'Connecticut':   {Koin:'partial', credit:'yes',     Koin_short:'Foxwoods / Mohegan piloting',             credit_short:'Both properties active'},
+  'Minnesota':     {Koin:'partial', credit:'partial', Koin_short:'Mystic Lake / Treasure Island live',      credit_short:'Larger tribal props only'},
+  'Wisconsin':     {Koin:'partial', credit:'partial', Koin_short:'Potawatomi Milwaukee live',               credit_short:'Potawatomi yes, others vary'},
+  'Arizona':       {Koin:'partial', credit:'partial', Koin_short:'Talking Stick live',                      credit_short:'Compact-specific'},
+  'Kansas':        {Koin:'partial', credit:'yes',     Koin_short:'State casinos implementing',              credit_short:'Approved – state-managed'},
+  'South Dakota':  {Koin:'partial', credit:'yes',     Koin_short:'Deadwood props rolling out',              credit_short:'Approved – Deadwood commercial'},
+  'Oregon':        {Koin:'partial', credit:'partial', Koin_short:'Spirit Mtn / Chinook Winds',              credit_short:'Limited – larger tribal only'},
+  'North Carolina':{Koin:'partial', credit:'partial', Koin_short:"Harrah's Cherokee live",                  credit_short:"Harrah's Cherokee – EBCI compact"},
+  'Washington':    {Koin:'pending', credit:'no',      Koin_short:'Compact amendments in progress',          credit_short:'PROHIBITED by state law – RCW 9.46'},
+  'Nebraska':      {Koin:'pending', credit:'partial', Koin_short:'Framework in development',                credit_short:'New market – developing'},
+  'Virginia':      {Koin:'pending', credit:'yes',     Koin_short:'Expected approval 2025',                  credit_short:'Approved – VA Lottery Board'},
+  'Arkansas':      {Koin:'pending', credit:'yes',     Koin_short:'Saracen/Oaklawn in discussion',           credit_short:'Permitted'},
+  'Maine':         {Koin:'pending', credit:'yes',     Koin_short:'Oxford/Hollywood discussing',             credit_short:'Permitted'},
+  'New Mexico':    {Koin:'no',      credit:'partial', Koin_short:'No compact provisions yet',               credit_short:'Limited – Inn of Mountain Gods'},
+  'North Dakota':  {Koin:'no',      credit:'partial', Koin_short:'Conservative reg environment',            credit_short:'Four Bears limited'},
+  'Montana':       {Koin:'no',      credit:'partial', Koin_short:'VLT-based – N/A',                        credit_short:'Small-scale tribal only'},
+  'Idaho':         {Koin:'no',      credit:'partial', Koin_short:'Compacts silent',                         credit_short:"Limited – Coeur d'Alene only"},
+  'Alabama':       {Koin:'no',      credit:'partial', Koin_short:'Wind Creek not deployed',                 credit_short:'Wind Creek Atmore/Montgomery yes'},
+  'Rhode Island':  {Koin:'no',      credit:'yes',     Koin_short:'State lottery – N/A',                    credit_short:'Permitted'},
+  'Delaware':      {Koin:'no',      credit:'yes',     Koin_short:'Lottery facilities – N/A',               credit_short:'Permitted'},
+  'West Virginia': {Koin:'no',      credit:'yes',     Koin_short:'WV Lottery not yet approved',             credit_short:'Permitted'},
+  'Kentucky':      {Koin:'no',      credit:'no',      Koin_short:'HHR racinos – N/A',                      credit_short:'Not applicable – HHR only'},
+  'Wyoming':       {Koin:'no',      credit:'partial', Koin_short:'No compact provision',                    credit_short:'Informal – limited'},
+  'Alaska':        {Koin:'no',      credit:'no',      Koin_short:'Bingo/pull-tabs only',                   credit_short:'No casino floor'},
+  'Texas':         {Koin:'no',      credit:'partial', Koin_short:'Kickapoo – not deployed',                credit_short:'Kickapoo Lucky Eagle only'},
 };
 const CASHLESS_COLORS={yes:'#16a34a',partial:'#d97706',pending:'#2563eb',no:'#dc2626'};
 const CREDIT_COLORS  ={yes:'#16a34a',partial:'#d97706',no:'#dc2626'};
@@ -2775,6 +2781,152 @@ const REAL_CASINOS = {
 // Generic tribal name pools for states without full lists (from 500 Nations state pages)
 
 
+
+// ── SALESFORCE INTEGRATION ────────────────────────────────────────────────────
+const SF_CLIENT_ID = '3MVG9cHH2bfKACZZqp5GhYpKigmk0Z9TvFSwK0TCskkVRxrmHD0YzeIv5jk_bFILqF4SG_XMzbv765CqQQa2s';
+const SF_INSTANCE  = 'https://markertrax.my.salesforce.com';
+const SF_CALLBACK  = 'https://johnrpeterson22.github.io/Casino-Pipeline-Dashboard/';
+const SF_AUTH_URL  = SF_INSTANCE + '/services/oauth2/authorize';
+const SF_TOKEN_KEY = 'sf_access_token';
+const SF_IURL_KEY  = 'sf_instance_url';
+
+let sfToken = null;
+let sfInstanceUrl = null;
+let sfData = {};  // keyed by normalized name -> SF record
+
+// Stage label mapping: SF Opportunity StageName -> our 6-stage index
+function sfStageToIndex(sfStage) {
+  if (!sfStage) return 0;
+  const s = sfStage.toLowerCase();
+  if (s.includes('prospect') || s.includes('lead') || s.includes('qualify')) return 0;
+  if (s.includes('meeting') || s.includes('discovery') || s.includes('contact')) return 1;
+  if (s.includes('verbal') || s.includes('negotiat') || s.includes('proposal')) return 3;
+  if (s.includes('closed won') || s.includes('signed') || s.includes('contract')) return 4;
+  if (s.includes('live') || s.includes('implement') || s.includes('active')) return 5;
+  return 0;
+}
+
+function sfNorm(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function sfIndicator(state) {
+  const el = document.getElementById('sf-ind');
+  if (!el) return;
+  if (state === 'connected') { el.textContent = '✓ SF Connected'; el.style.color = '#16a34a'; }
+  else if (state === 'syncing') { el.textContent = '⟳ SF Syncing…'; el.style.color = '#f59e0b'; }
+  else if (state === 'error') { el.textContent = '⚠ SF Error'; el.style.color = '#ef4444'; }
+  else { el.textContent = '☁ Connect Salesforce'; el.style.color = 'rgba(255,255,255,.5)'; }
+}
+
+// Check if we have a stored token on load
+function sfInit() {
+  // Check for OAuth callback token in URL hash
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    sfToken = params.get('access_token');
+    sfInstanceUrl = params.get('instance_url') || SF_INSTANCE;
+    if (sfToken) {
+      try { localStorage.setItem(SF_TOKEN_KEY, sfToken); localStorage.setItem(SF_IURL_KEY, sfInstanceUrl); } catch(e) {}
+      // Clean URL
+      window.history.replaceState(null, '', window.location.pathname);
+      sfSync();
+      return;
+    }
+  }
+  // Try stored token
+  try {
+    sfToken = localStorage.getItem(SF_TOKEN_KEY);
+    sfInstanceUrl = localStorage.getItem(SF_IURL_KEY) || SF_INSTANCE;
+  } catch(e) {}
+  if (sfToken) { sfSync(); }
+}
+
+// Launch SF OAuth login
+function sfConnect() {
+  if (sfToken) {
+    if (confirm('Already connected to Salesforce. Re-sync now?')) { sfSync(); }
+    return;
+  }
+  const params = new URLSearchParams({
+    response_type: 'token',
+    client_id: SF_CLIENT_ID,
+    redirect_uri: SF_CALLBACK,
+    scope: 'full refresh_token offline_access',
+  });
+  window.location.href = SF_AUTH_URL + '?' + params.toString();
+}
+
+// Query SF and merge into PL store
+function sfSync() {
+  if (!sfToken) { sfConnect(); return; }
+  sfIndicator('syncing');
+  // Query Accounts (casino properties) with key fields
+  const query = encodeURIComponent(
+    "SELECT Id, Name, BillingState, BillingCity, Type, " +
+    "(SELECT Id, Name, StageName, CloseDate FROM Opportunities ORDER BY LastModifiedDate DESC LIMIT 1), " +
+    "(SELECT Id, FirstName, LastName, Title, Phone, Email FROM Contacts LIMIT 1) " +
+    "FROM Account WHERE RecordType.Name != null OR Type != null LIMIT 1000"
+  );
+  fetch(sfInstanceUrl + '/services/data/v59.0/query?q=' + query, {
+    headers: { 'Authorization': 'Bearer ' + sfToken, 'Content-Type': 'application/json' }
+  })
+  .then(function(r) {
+    if (r.status === 401) {
+      // Token expired
+      try { localStorage.removeItem(SF_TOKEN_KEY); } catch(e) {}
+      sfToken = null; sfIndicator('error');
+      return null;
+    }
+    return r.json();
+  })
+  .then(function(data) {
+    if (!data || !data.records) return;
+    let matched = 0;
+    data.records.forEach(function(acc) {
+      const normName = sfNorm(acc.Name);
+      const state = acc.BillingState || '';
+      // Find matching casino in our DB
+      let matchedCasino = null;
+      Object.keys(DB).forEach(function(dbState) {
+        (DB[dbState] || []).forEach(function(casino) {
+          if (sfNorm(casino.name) === normName) {
+            matchedCasino = casino;
+          }
+        });
+      });
+      if (matchedCasino) {
+        const key = matchedCasino.state + '||' + matchedCasino.name;
+        if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
+        // SF wins on conflicts - apply SF data
+        const opp = acc.Opportunities && acc.Opportunities.records && acc.Opportunities.records[0];
+        if (opp) {
+          PL[key].stage = sfStageToIndex(opp.StageName);
+          PL[key].sfStage = opp.StageName;
+          PL[key].sfOppId = opp.Id;
+        }
+        const contact = acc.Contacts && acc.Contacts.records && acc.Contacts.records[0];
+        if (contact) {
+          PL[key].contact = (contact.FirstName || '') + ' ' + (contact.LastName || '') + (contact.Title ? ' — ' + contact.Title : '');
+        }
+        PL[key].sfId = acc.Id;
+        PL[key].sfName = acc.Name;
+        matched++;
+      }
+    });
+    // Push merged data back to JSONBin
+    savePL();
+    sfIndicator('connected');
+    refreshStateMarkers();
+    if (curState) { renderPanel(); }
+    console.log('SF sync complete: ' + matched + ' properties matched from ' + data.records.length + ' SF accounts');
+  })
+  .catch(function(e) {
+    console.error('SF sync error:', e);
+    sfIndicator('error');
+  });
+}
+
 // ── HASH UTILS ────────────────────────────────────────────────────────────────
 function sh(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return Math.abs(h);}
 function di(h,lo,hi){const x=Math.sin(h*7919+31337)*198491;return lo+Math.floor((x-Math.floor(x))*(hi-lo+1));}
@@ -2783,12 +2935,11 @@ function dp(h,arr){const x=Math.sin(h*9301+49297)*233280;return arr[Math.floor((
 // ── PIPELINE STORAGE ─────────────────────────────────────────────────────────
 const LS_KEY='casino-pipeline-v2';
 const JSONBIN_ID='6a318a17f5f4af5e29fcb5a0';
-const JSONBIN_KEY='$2a$10$YjURRP5.MtU/WwHn9JIvS.aoLldRflCMKSiiY0eSLlti.frBe1zD2';
+const JSONBIN_KEY='$2a$10$t8rNABikFo4tZxVFkMPJ/./bymQ/jCraKpVyEf46pJ1eMk1Sj.S8O';
 const JSONBIN_URL='https://api.jsonbin.io/v3/b/'+JSONBIN_ID;
 let PL={};
 let cloudReady=false;
 let pendingSave=null;
-const dirtyKeys=new Set(); // keys edited locally but not yet confirmed pushed to the cloud
 
 // Instant local cache so the UI never blocks on network
 function loadPLLocal(){try{const v=localStorage.getItem(LS_KEY);if(v)PL=JSON.parse(v);}catch(e){}}
@@ -2811,11 +2962,8 @@ function fetchCloudPL(silent){
     .then(function(r){if(!r.ok)throw new Error('fetch failed');return r.json();})
     .then(function(data){
       const records=(data&&data.record&&data.record.records)||{};
-      // Don't let a background refresh stomp edits that haven't been pushed yet
-      dirtyKeys.forEach(function(k){ if(PL[k]!==undefined) records[k]=PL[k]; });
       PL=records;
       savePLLocal();
-      applyOverridesToDB();
       cloudReady=true;
       setSyncIndicator('synced');
       if(curState)renderPanel();
@@ -2828,33 +2976,20 @@ function fetchCloudPL(silent){
     });
 }
 
-// Push only the locally-changed records, merged onto the freshest cloud copy (debounced)
+// Push the full PL object to the shared bin (debounced)
 function pushCloudPL(){
   setSyncIndicator('syncing');
-  const keysToPush=Array.from(dirtyKeys);
-  fetch(JSONBIN_URL+'/latest',{headers:{'X-Master-Key':JSONBIN_KEY}})
-    .then(function(r){if(!r.ok)throw new Error('fetch failed');return r.json();})
-    .then(function(data){
-      const cloudRecords=(data&&data.record&&data.record.records)||{};
-      keysToPush.forEach(function(k){ if(PL[k]!==undefined) cloudRecords[k]=PL[k]; });
-      return fetch(JSONBIN_URL,{
-        method:'PUT',
-        headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
-        body:JSON.stringify({records:cloudRecords})
-      }).then(function(r){
-        if(r.ok){
-          PL=cloudRecords;
-          savePLLocal();
-          applyOverridesToDB();
-          keysToPush.forEach(function(k){dirtyKeys.delete(k);});
-          setSyncIndicator('synced');
-        } else setSyncIndicator('offline');
-      });
-    }).catch(function(){setSyncIndicator('offline');});
+  fetch(JSONBIN_URL,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
+    body:JSON.stringify({records:PL})
+  }).then(function(r){
+    if(r.ok)setSyncIndicator('synced');
+    else setSyncIndicator('offline');
+  }).catch(function(){setSyncIndicator('offline');});
 }
 
-function savePL(key){
-  if(key)dirtyKeys.add(key);
+function savePL(){
   savePLLocal();
   if(pendingSave)clearTimeout(pendingSave);
   pendingSave=setTimeout(pushCloudPL,500);
@@ -2874,7 +3009,7 @@ function setStage(key,stage){
   if(!PL[key])PL[key]={stage,history:[],notes:'',contact:''};
   PL[key].stage=stage;
   PL[key].history=(PL[key].history||[]).concat({stage,ts:new Date().toISOString()});
-  savePL(key);
+  savePL();
 }
 
 // ── BUILD DATABASE ────────────────────────────────────────────────────────────
@@ -2921,31 +3056,12 @@ Object.entries(SI).forEach(([state,info])=>{
   DB[state]=real;
 });
 
-// Re-stamp DB entries with the latest PL overrides (needed after every cloud sync,
-// since stage is looked up live but type/cms/slots/tables are cached on the DB object)
-function applyOverridesToDB(){
-  Object.keys(PL).forEach(function(key){
-    const sep=key.indexOf('||');
-    if(sep<0)return;
-    const state=key.slice(0,sep), name=key.slice(sep+2);
-    const list=DB[state];
-    if(!list)return;
-    const i=list.findIndex(function(x){return x.name===name;});
-    if(i<0)return;
-    const rec=PL[key];
-    if(rec.type)list[i].type=rec.type;
-    if(rec.cms)list[i].cms=rec.cms;
-    if(rec.slots!==undefined)list[i].slots=rec.slots;
-    if(rec.tables!==undefined)list[i].tables=rec.tables;
-  });
-}
-
 // ── MAP SETUP ────────────────────────────────────────────────────────────────
 let curState=null,curList=[],curIdx=null;
 const leafletMarkers={};   // state -> {m: L.Marker}
 const casinoMarkers={};    // state -> [L.Marker, ...]
 let stateOverlayLayer=null;
-let currentView='markers';
+let currentView='moolah';
 
 const map=L.map('map',{center:[38.5,-96],zoom:4,maxZoom:19,minZoom:3,scrollWheelZoom:true});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
@@ -2955,14 +3071,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 
 // ── STATE COLOR OVERLAY ───────────────────────────────────────────────────────
 function getStateColor(state,view){
-  if(view==='markers'){
+  if(view==='moolah'){
     const mt=MT_STATUS[state];
     if(!mt)return null;
     return {approved:'#16a34a',restricted:'#f59e0b',prohibited:'#ef4444'}[mt.status]||null;
   } else {
     const reg=REG_STATUS[state];
     if(!reg)return null;
-    return {yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.cashless]||null;
+    return {yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.Koin]||null;
   }
 }
 
@@ -2981,17 +3097,17 @@ function buildStateOverlay(view){
         layer.setStyle({fillColor:c||'#e5e7eb',fillOpacity:c?0.55:0.05,color:'#fff',weight:1.2});
       });
       let tip='<b>'+name+'</b>';
-      if(view==='markers'){
+      if(view==='moolah'){
         const mt=MT_STATUS[name];
         if(mt){
-          const lbl={approved:'✓ Markers approved statewide',restricted:'⚠ Varies by property',prohibited:'⛔ Prohibited (RCW 9.46)'}[mt.status]||mt.status;
+          const lbl={approved:'✓ Moolah Play approved statewide',restricted:'⚠ Varies by property',prohibited:'⛔ Prohibited (RCW 9.46)'}[mt.status]||mt.status;
           tip+='<br>'+lbl;
           if(mt.note)tip+='<br><small>'+mt.note+'</small>';
         }
       } else {
         const reg=REG_STATUS[name];
         if(reg){
-          const clbl={yes:'✅ Cashless approved',partial:'⚠ Some properties',pending:'🔵 Pending',no:'❌ Not approved'}[reg.cashless]||reg.cashless;
+          const clbl={yes:'✅ Koin approved',partial:'⚠ Some properties',pending:'🔵 Pending',no:'❌ Not approved'}[reg.Koin]||reg.Koin;
           tip+='<br>'+clbl;
         }
       }
@@ -3011,6 +3127,7 @@ function buildCasinoMarkers(state){
   list.forEach(function(p){
     const coords=CASINO_COORDS[p.name];
     if(!coords) return;
+    if(PL[p.state+'||'+p.name]&&PL[p.state+'||'+p.name].deleted) return;
     const key=state+'||'+p.name;
     const stage=getStage(key);
     const col=STAGES[stage].color;
@@ -3092,10 +3209,12 @@ function getF(){
 }
 function filterList(list,f){
   return list.filter(function(p){
+    const key=p.state+'||'+p.name;
+    if(PL[key]&&PL[key].deleted)return false;
     if(f.type&&p.type!==f.type)return false;
     if(f.cms&&p.cms!==f.cms)return false;
     if(f.search&&!p.name.toLowerCase().includes(f.search)&&!p.city.toLowerCase().includes(f.search))return false;
-    if(f.stage!==null&&getStage(p.state+'||'+p.name)!==f.stage)return false;
+    if(f.stage!==null&&getStage(key)!==f.stage)return false;
     return true;
   });
 }
@@ -3143,7 +3262,7 @@ function renderPanel(){
   document.getElementById('ph-s').textContent=curList.length+' of '+raw.length+' properties';
   const counts=[0,0,0,0,0];
   curList.forEach(function(p){counts[getStage(p.state+'||'+p.name)]++;});
-  [0,1,2,3,4].forEach(function(i){document.getElementById('ps'+i).textContent=counts[i];});
+  [0,1,2,3,4,5].forEach(function(i){var el=document.getElementById('ps'+i);if(el)el.textContent=counts[i]||0;});
   document.getElementById('sv-t').textContent=curList.length;
   document.getElementById('sv-tr').textContent=curList.filter(function(p){return p.type==='Tribal';}).length;
   document.getElementById('sv-c').textContent=curList.filter(function(p){return p.type==='Commercial';}).length;
@@ -3186,10 +3305,10 @@ function renderDetail(p){
   }).join('');
   const reg=REG_STATUS[p.state]||{};
   const mt=MT_STATUS[p.state]||{};
-  const cashColor={yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.cashless]||'#aaa';
+  const cashColor={yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.Koin]||'#aaa';
   const creditColor={yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.credit]||'#aaa';
   const mtColor={approved:'#16a34a',restricted:'#f59e0b',prohibited:'#ef4444'}[mt.status]||'#aaa';
-  const cashLabel={yes:'Cashless Approved',partial:'Partial / Some Properties',pending:'Pending Approval',no:'Not Approved'}[reg.cashless]||'Unknown';
+  const cashLabel={yes:'Koin Approved',partial:'Partial / Some Properties',pending:'Pending Approval',no:'Not Approved'}[reg.Koin]||'Unknown';
   const creditLabel={yes:'Credit Approved',partial:'Partial',pending:'Pending',no:'Not Approved'}[reg.credit]||'Unknown';
   const mtLabel={approved:'Markers Approved Statewide',restricted:'Varies by Property',prohibited:'Prohibited — RCW 9.46'}[mt.status]||'Unknown';
   const hist=(rec.history||[]).slice(-5).reverse().map(function(h){
@@ -3200,10 +3319,10 @@ function renderDetail(p){
   document.getElementById('dbody').innerHTML=
     '<div class="sec-lbl">Regulatory Status — '+p.state+'</div>'+
     '<div class="dfields">'+
-    '<div class="dfield"><div class="dfl">Cashless Gaming</div><div class="dfv" style="color:'+cashColor+'">'+cashLabel+'</div></div>'+
-    '<div class="dfield"><div class="dfl">Casino Credit</div><div class="dfv" style="color:'+creditColor+'">'+creditLabel+'</div></div>'+
+    '<div class="dfield"><div class="dfl">Koin (Koin)</div><div class="dfv" style="color:'+cashColor+'">'+cashLabel+'</div></div>'+
+    '<div class="dfield"><div class="dfl">Moolah Play (Credit)</div><div class="dfv" style="color:'+creditColor+'">'+creditLabel+'</div></div>'+
     '</div>'+
-    '<div class="dfield" style="margin-bottom:8px;background:#fff3f3;border:1px solid '+mtColor+'40;"><div class="dfl">Marker Trax Status</div><div class="dfv" style="color:'+mtColor+'">'+mtLabel+'</div></div>'+
+    '<div class="dfield" style="margin-bottom:8px;background:#fff3f3;border:1px solid '+mtColor+'40;"><div class="dfl">Moolah Play Status</div><div class="dfv" style="color:'+mtColor+'">'+mtLabel+'</div></div>'+
     '<div class="sec-lbl">Sales Pipeline Stage</div>'+
     '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:10px;">'+stageBtns+'</div>'+
     '<div class="sec-lbl">Property Details</div>'+
@@ -3225,6 +3344,21 @@ function renderDetail(p){
     '<div class="saved-msg" id="saved-msg">✓ Saved</div>'+
     (hist?'<div class="sec-lbl">History</div><div class="hist-box">'+hist+'</div>':'')+
     '<div class="sec-lbl">Sources</div><div class="src-row">'+fn500+ccLink+'</div>';
+}
+
+function deleteProperty(state,name){
+  if(!confirm('Hide "'+name+'" from the map and list? You can restore it from Settings.')) return;
+  const key=state+'||'+name;
+  if(!PL[key])PL[key]={stage:0,history:[],notes:'',contact:''};
+  PL[key].deleted=true;
+  savePL();
+  closePanel();
+  // Rebuild casino markers for this state to remove the hidden pin
+  if(casinoMarkers[state]){
+    clearCasinoMarkers();
+    buildCasinoMarkers(state);
+  }
+  refreshStateMarkers();
 }
 
 function doSetStage(state,name,stage){
@@ -3257,7 +3391,7 @@ function saveRecord(state,name){
   PL[key].cms=document.getElementById('fi-cms').value;
   PL[key].slots=Math.max(0,parseInt(document.getElementById('fi-slots').value)||0);
   PL[key].tables=Math.max(0,parseInt(document.getElementById('fi-tables').value)||0);
-  savePL(key);
+  savePL();
   // Apply overrides to the in-memory casino object immediately
   const list=DB[state]||[];
   const idx=list.findIndex(function(x){return x.name===name;});
@@ -3277,21 +3411,21 @@ function setView(view){
   currentView=view;
   buildStateOverlay(view);
   if(curState&&stateOverlayLayer) map.removeLayer(stateOverlayLayer);
-  ['btn-view-markers','btn-view-cashless'].forEach(function(id){
+  ['btn-view-moolah','btn-view-Koin'].forEach(function(id){
     const btn=document.getElementById(id);if(btn)btn.classList.remove('active-view');
   });
-  const ab=document.getElementById({markers:'btn-view-markers',cashless:'btn-view-cashless'}[view]);
+  const ab=document.getElementById({markers:'btn-view-moolah',Koin:'btn-view-Koin'}[view]);
   if(ab)ab.classList.add('active-view');
   updateLegend(view);
 }
 
 function updateLegend(view){
   const legEl=document.getElementById('legbar');if(!legEl)return;
-  const mapColors=view==='markers'
+  const mapColors=view==='moolah'
     ?[['#16a34a','Approved statewide'],['#f59e0b','Varies by property'],['#ef4444','Prohibited (WA only)']]
     :[['#16a34a','Approved'],['#f59e0b','Some properties'],['#3b82f6','Pending'],['#ef4444','Not approved']];
-  const pinColors=[['#dc2626','Prospect'],['#ea580c','Reached out'],['#ca8a04','Meeting set'],['#16a34a','Contracted'],['#15803d','Live']];
-  const viewLbl=view==='markers'?'🏦 MARKER TRAX:':'💳 CASHLESS:';
+  const pinColors=[['#dc2626','Prospect'],['#ea580c','Meeting'],['#f59e0b','Verbal'],['#3b82f6','Proposal'],['#16a34a','Signed'],['#15803d','Live']];
+  const viewLbl=view==='moolah'?'🏦 MOOLAH PLAY:':'💳 CASHLESS:';
   legEl.innerHTML='<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.7);margin-right:4px;">'+viewLbl+'</span>'+
     mapColors.map(function(p){return '<span class="li"><span class="ld" style="background:'+p[0]+';border-radius:3px;width:14px;height:14px;"></span>'+p[1]+'</span>';}).join('')+
     '<span style="color:rgba(255,255,255,.2);margin:0 6px;">|</span>'+
@@ -3302,6 +3436,21 @@ function updateLegend(view){
 // ── WIRING ────────────────────────────────────────────────────────────────────
 document.getElementById('d-prev').addEventListener('click',function(){if(curIdx>0)openDetail(curIdx-1,null);});
 document.getElementById('d-next').addEventListener('click',function(){if(curIdx<curList.length-1)openDetail(curIdx+1,null);});
+document.getElementById('d-hide').addEventListener('click',function(){
+  const p=curIdx!==null?curList[curIdx]:null;
+  if(!p)return;
+  if(!confirm('Hide "'+p.name+'" from map and list? Use "Restore hidden" in toolbar to show it again.'))return;
+  const key=p.state+'||'+p.name;
+  if(!PL[key])PL[key]={stage:0,history:[],notes:'',contact:''};
+  PL[key].deleted=true;
+  savePL();
+  document.getElementById('det').style.display='none';
+  document.getElementById('list').style.display='';
+  curIdx=null;
+  if(casinoMarkers[curState]){clearCasinoMarkers();buildCasinoMarkers(curState);}
+  refreshStateMarkers();
+  renderPanel();
+});
 document.getElementById('d-x').addEventListener('click',function(){
   document.getElementById('det').style.display='none';
   document.getElementById('list').style.display='';
@@ -3328,24 +3477,35 @@ document.getElementById('s-type').addEventListener('change',onFilter);
 document.getElementById('s-cms').addEventListener('change',onFilter);
 document.getElementById('s-stage').addEventListener('change',onFilter);
 
+document.getElementById('btn-restore').addEventListener('click',function(){
+  const hidden=Object.keys(PL).filter(function(k){return PL[k]&&PL[k].deleted;});
+  if(!hidden.length){alert('No hidden properties to restore.');return;}
+  if(!confirm('Restore '+hidden.length+' hidden propert'+(hidden.length===1?'y':'ies')+'?'))return;
+  hidden.forEach(function(k){delete PL[k].deleted;});
+  savePL();
+  refreshStateMarkers();
+  if(curState){clearCasinoMarkers();buildCasinoMarkers(curState);renderPanel();}
+  alert('Done — '+hidden.length+' propert'+(hidden.length===1?'y':'ies')+' restored.');
+});
 document.getElementById('btn-reset').addEventListener('click',function(){
   ['s-state','s-type','s-cms','s-stage'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('s-search').value='';
   closePanel();
   map.flyTo([38.5,-96],4,{duration:0.6});
-  setView('markers');
+  setView('moolah');
   onFilter();
 });
 
-document.getElementById('btn-view-markers').addEventListener('click',function(){setView('markers');});
-document.getElementById('btn-view-cashless').addEventListener('click',function(){setView('cashless');});
+document.getElementById('btn-view-moolah').addEventListener('click',function(){setView('moolah');});
+document.getElementById('btn-view-Koin').addEventListener('click',function(){setView('Koin');});
 
 document.getElementById('s-sort').addEventListener('change',function(){if(curState)renderPanel();});
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 buildStateMarkers();
-buildStateOverlay('markers');
-updateLegend('markers');
+buildStateOverlay('moolah');
+updateLegend('moolah');
+sfInit();
 
 </script>
 </body>
