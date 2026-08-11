@@ -2852,7 +2852,7 @@ function sfConnect() {
     response_type: 'token',
     client_id: SF_CLIENT_ID,
     redirect_uri: SF_CALLBACK,
-    scope: 'full refresh_token offline_access',
+    scope: 'full',
   });
   window.location.href = SF_AUTH_URL + '?' + params.toString();
 }
