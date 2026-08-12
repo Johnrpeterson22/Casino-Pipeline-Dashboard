@@ -759,10 +759,6 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
   <button onclick="sfReconnect()" style="height:30px;padding:0 10px;border-radius:6px;border:1.5px solid rgba(255,100,100,.5);background:transparent;color:rgba(255,150,150,.8);font-size:11px;font-weight:600;cursor:pointer;" id="sf-reconnect-btn">↺ Reconnect SF</button>
   <span id="sf-ind" style="font-size:11px;color:rgba(255,255,255,.5);margin-right:4px;"></span>
   <span id="sync-ind" style="font-size:11px;color:#999;margin-left:4px;">⟳ Loading…</span>
-  <span style="color:rgba(255,255,255,.3);font-size:14px;">|</span>
-  <span style="font-size:11px;color:rgba(255,255,255,.6);">Map view:</span>
-  <button id="btn-view-moolah" class="view-btn active-view">🏦 Moolah Play</button>
-  <button id="btn-view-Koin" class="view-btn">💳 Koin</button>
 </div>
 <div id="legbar"></div>
 <div id="main">
@@ -897,26 +893,26 @@ const REG_STATUS={
   'Louisiana':     {Koin:'yes',     credit:'yes',     Koin_short:'LGCB approved Feb 2023',                  credit_short:'Fully approved – commercial'},
   'Mississippi':   {Koin:'yes',     credit:'yes',     Koin_short:'MGC approved Feb 2023',                   credit_short:'Fully approved – civil enforcement'},
   'Missouri':      {Koin:'yes',     credit:'yes',     Koin_short:'MGC approved Feb 2023',                   credit_short:'Fully approved – riverboats'},
-  'New Jersey':    {Koin:'partial', credit:'yes',     Koin_short:'Rolling out – Borgata/HR live',           credit_short:'Fully approved – all 9 AC props'},
-  'Michigan':      {Koin:'partial', credit:'partial', Koin_short:'Commercial live, tribal rolling',          credit_short:'Commercial yes, tribal varies'},
-  'Illinois':      {Koin:'partial', credit:'yes',     Koin_short:'Rivers/Hard Rock deploying',              credit_short:'Fully approved'},
-  'Maryland':      {Koin:'partial', credit:'yes',     Koin_short:'MGM National Harbor live',                credit_short:'Fully approved'},
+  'New Jersey':    {Koin:'yes', credit:'yes',     Koin_short:'Rolling out – Borgata/HR live',           credit_short:'Fully approved – all 9 AC props'},
+  'Michigan':      {Koin:'yes', credit:'partial', Koin_short:'Commercial live, tribal rolling',          credit_short:'Commercial yes, tribal varies'},
+  'Illinois':      {Koin:'yes', credit:'yes',     Koin_short:'Rivers/Hard Rock deploying',              credit_short:'Fully approved'},
+  'Maryland':      {Koin:'yes', credit:'yes',     Koin_short:'MGM National Harbor live',                credit_short:'Fully approved'},
   'Massachusetts': {Koin:'partial', credit:'yes',     Koin_short:'Encore Boston Harbor piloting',           credit_short:'Approved – premium patrons'},
-  'New York':      {Koin:'partial', credit:'yes',     Koin_short:'Resorts World NYC / Empire City live',    credit_short:'Fully approved'},
-  'Colorado':      {Koin:'partial', credit:'yes',     Koin_short:'Black Hawk implementing',                 credit_short:'Fully approved'},
-  'Connecticut':   {Koin:'partial', credit:'yes',     Koin_short:'Foxwoods / Mohegan piloting',             credit_short:'Both properties active'},
+  'New York':      {Koin:'no', credit:'yes',     Koin_short:'Resorts World NYC / Empire City live',    credit_short:'Fully approved'},
+  'Colorado':      {Koin:'yes', credit:'yes',     Koin_short:'Black Hawk implementing',                 credit_short:'Fully approved'},
+  'Connecticut':   {Koin:'no', credit:'yes',     Koin_short:'Foxwoods / Mohegan piloting',             credit_short:'Both properties active'},
   'Minnesota':     {Koin:'partial', credit:'partial', Koin_short:'Mystic Lake / Treasure Island live',      credit_short:'Larger tribal props only'},
   'Wisconsin':     {Koin:'partial', credit:'partial', Koin_short:'Potawatomi Milwaukee live',               credit_short:'Potawatomi yes, others vary'},
-  'Arizona':       {Koin:'partial', credit:'partial', Koin_short:'Talking Stick live',                      credit_short:'Compact-specific'},
-  'Kansas':        {Koin:'partial', credit:'yes',     Koin_short:'State casinos implementing',              credit_short:'Approved – state-managed'},
+  'Arizona':       {Koin:'no', credit:'partial', Koin_short:'Talking Stick live',                      credit_short:'Compact-specific'},
+  'Kansas':        {Koin:'no', credit:'yes',     Koin_short:'State casinos implementing',              credit_short:'Approved – state-managed'},
   'South Dakota':  {Koin:'partial', credit:'yes',     Koin_short:'Deadwood props rolling out',              credit_short:'Approved – Deadwood commercial'},
   'Oregon':        {Koin:'partial', credit:'partial', Koin_short:'Spirit Mtn / Chinook Winds',              credit_short:'Limited – larger tribal only'},
-  'North Carolina':{Koin:'partial', credit:'partial', Koin_short:"Harrah's Cherokee live",                  credit_short:"Harrah's Cherokee – EBCI compact"},
-  'Washington':    {Koin:'pending', credit:'no',      Koin_short:'Compact amendments in progress',          credit_short:'PROHIBITED by state law – RCW 9.46'},
+  'North Carolina':{Koin:'no', credit:'partial', Koin_short:"Harrah's Cherokee live",                  credit_short:"Harrah's Cherokee – EBCI compact"},
+  'Washington':    {Koin:'no', credit:'no',      Koin_short:'Compact amendments in progress',          credit_short:'PROHIBITED by state law – RCW 9.46'},
   'Nebraska':      {Koin:'pending', credit:'partial', Koin_short:'Framework in development',                credit_short:'New market – developing'},
-  'Virginia':      {Koin:'pending', credit:'yes',     Koin_short:'Expected approval 2025',                  credit_short:'Approved – VA Lottery Board'},
-  'Arkansas':      {Koin:'pending', credit:'yes',     Koin_short:'Saracen/Oaklawn in discussion',           credit_short:'Permitted'},
-  'Maine':         {Koin:'pending', credit:'yes',     Koin_short:'Oxford/Hollywood discussing',             credit_short:'Permitted'},
+  'Virginia':      {Koin:'yes', credit:'yes',     Koin_short:'Expected approval 2025',                  credit_short:'Approved – VA Lottery Board'},
+  'Arkansas':      {Koin:'yes', credit:'yes',     Koin_short:'Saracen/Oaklawn in discussion',           credit_short:'Permitted'},
+  'Maine':         {Koin:'no', credit:'yes',     Koin_short:'Oxford/Hollywood discussing',             credit_short:'Permitted'},
   'New Mexico':    {Koin:'no',      credit:'partial', Koin_short:'No compact provisions yet',               credit_short:'Limited – Inn of Mountain Gods'},
   'North Dakota':  {Koin:'no',      credit:'partial', Koin_short:'Conservative reg environment',            credit_short:'Four Bears limited'},
   'Montana':       {Koin:'no',      credit:'partial', Koin_short:'VLT-based – N/A',                        credit_short:'Small-scale tribal only'},
@@ -924,7 +920,7 @@ const REG_STATUS={
   'Alabama':       {Koin:'no',      credit:'partial', Koin_short:'Wind Creek not deployed',                 credit_short:'Wind Creek Atmore/Montgomery yes'},
   'Rhode Island':  {Koin:'no',      credit:'yes',     Koin_short:'State lottery – N/A',                    credit_short:'Permitted'},
   'Delaware':      {Koin:'no',      credit:'yes',     Koin_short:'Lottery facilities – N/A',               credit_short:'Permitted'},
-  'West Virginia': {Koin:'no',      credit:'yes',     Koin_short:'WV Lottery not yet approved',             credit_short:'Permitted'},
+  'West Virginia': {Koin:'yes',      credit:'yes',     Koin_short:'WV Lottery not yet approved',             credit_short:'Permitted'},
   'Kentucky':      {Koin:'no',      credit:'no',      Koin_short:'HHR racinos – N/A',                      credit_short:'Not applicable – HHR only'},
   'Wyoming':       {Koin:'no',      credit:'partial', Koin_short:'No compact provision',                    credit_short:'Informal – limited'},
   'Alaska':        {Koin:'no',      credit:'no',      Koin_short:'Bingo/pull-tabs only',                   credit_short:'No casino floor'},
@@ -941,42 +937,42 @@ const MT_STATUS={
   'Mississippi':{status:'approved',note:'Markers permitted. Civil enforcement.'},
   'Michigan':{status:'approved',note:'Markers permitted for commercial casinos.'},
   'Indiana':{status:'approved',note:'Markers permitted under IGC.'},
-  'Iowa':{status:'approved',note:'Markers permitted under IRGC.'},
+  'Iowa':{status:'prohibited',note:'Markers permitted under IRGC.'},
   'Illinois':{status:'approved',note:'Markers permitted under IGB.'},
   'Missouri':{status:'approved',note:'Markers permitted.'},
   'Louisiana':{status:'approved',note:'Markers permitted – commercial and tribal.'},
-  'Colorado':{status:'approved',note:'Markers permitted in licensed casinos.'},
+  'Colorado':{status:'prohibited',note:'Markers permitted in licensed casinos.'},
   'Maryland':{status:'approved',note:'Markers permitted under MGC.'},
   'Ohio':{status:'approved',note:'Markers permitted under OCCC.'},
   'Massachusetts':{status:'approved',note:'Markers permitted at resort-scale properties.'},
   'New York':{status:'approved',note:'Markers permitted at commercial and tribal properties.'},
-  'Connecticut':{status:'approved',note:'Foxwoods and Mohegan Sun both operate markers.'},
+  'Connecticut':{status:'prohibited',note:'Foxwoods and Mohegan Sun both operate markers.'},
   'Virginia':{status:'approved',note:'Markers permitted at new commercial casinos.'},
   'West Virginia':{status:'approved',note:'Markers permitted.'},
   'Rhode Island':{status:'approved',note:'Markers permitted.'},
-  'Delaware':{status:'approved',note:'Markers permitted.'},
+  'Delaware':{status:'prohibited',note:'Markers permitted.'},
   'South Dakota':{status:'approved',note:'Markers permitted in Deadwood commercial casinos.'},
   'Kansas':{status:'approved',note:'Markers permitted at state-managed casinos.'},
-  'Maine':{status:'approved',note:'Markers permitted.'},
+  'Maine':{status:'prohibited',note:'Markers permitted.'},
   'Arkansas':{status:'approved',note:'Markers permitted per Arkansas Casino Gaming Rules.'},
-  'California':{status:'restricted',note:'Compact-dependent. Major tribal casinos (Pechanga, Morongo, San Manuel, Yaamava) DO issue markers. Check individual compact.'},
-  'Oklahoma':{status:'restricted',note:'Compact-dependent. WinStar, Hard Rock Tulsa, Downstream issue markers. Smaller properties vary.'},
-  'Minnesota':{status:'restricted',note:'Compact-dependent. Mystic Lake permits markers; others vary.'},
-  'Wisconsin':{status:'restricted',note:'Potawatomi Milwaukee permits markers; Ho-Chunk and Oneida vary.'},
-  'Arizona':{status:'restricted',note:'Compact language varies. Talking Stick and Ak-Chin issue markers.'},
+  'California':{status:'approved',note:'Compact-dependent. Major tribal casinos (Pechanga, Morongo, San Manuel, Yaamava) DO issue markers. Check individual compact.'},
+  'Oklahoma':{status:'approved',note:'Compact-dependent. WinStar, Hard Rock Tulsa, Downstream issue markers. Smaller properties vary.'},
+  'Minnesota':{status:'prohibited',note:'Compact-dependent. Mystic Lake permits markers; others vary.'},
+  'Wisconsin':{status:'prohibited',note:'Potawatomi Milwaukee permits markers; Ho-Chunk and Oneida vary.'},
+  'Arizona':{status:'approved',note:'Compact language varies. Talking Stick and Ak-Chin issue markers.'},
   'New Mexico':{status:'restricted',note:'Most NM tribal compacts do not permit traditional markers.'},
-  'Florida':{status:'restricted',note:'Seminole Hard Rock properties permit markers. Racinos generally do not.'},
-  'North Carolina':{status:'restricted',note:'Cherokee compact allows markers for high-limit players.'},
+  'Florida':{status:'approved',note:'Seminole Hard Rock properties permit markers. Racinos generally do not.'},
+  'North Carolina':{status:'approved',note:'Cherokee compact allows markers for high-limit players.'},
   'Oregon':{status:'restricted',note:'Oregon tribal compacts generally restrict house credit.'},
   'Idaho':{status:'restricted',note:'Idaho compacts restrict credit significantly.'},
   'Nebraska':{status:'restricted',note:'Commercial market new (2022+); regulations developing.'},
   'North Dakota':{status:'restricted',note:'Compact language restricts credit at most ND properties.'},
   'Montana':{status:'restricted',note:'Very limited tribal gaming. No formal marker system.'},
-  'Wyoming':{status:'restricted',note:'Compact does not expressly permit markers.'},
+  'Wyoming':{status:'prohibited',note:'Compact does not expressly permit markers.'},
   'Alabama':{status:'restricted',note:'Wind Creek properties permit markers for premium players.'},
   'Alaska':{status:'restricted',note:'Very limited tribal gaming. No marker system.'},
-  'Texas':{status:'restricted',note:'Kickapoo Lucky Eagle permits markers for premium players.'},
-  'Kentucky':{status:'restricted',note:'Racinos operate HHR machines only. No marker program.'},
+  'Texas':{status:'approved',note:'Kickapoo Lucky Eagle permits markers for premium players.'},
+  'Kentucky':{status:'prohibited',note:'Racinos operate HHR machines only. No marker program.'},
   'Washington':{status:'prohibited',note:'PROHIBITED. State law (RCW 9.46) and ALL tribal compacts expressly prohibit house credit/markers. Washington is the ONLY state with a flat statutory prohibition.'},
 };
 const US_STATES_GEO={"type":"FeatureCollection","features":[
@@ -3230,7 +3226,7 @@ function buildCanadaOverlay() {
   // Add GeoJSON color fill for each province
   L.geoJSON(CANADA_PROVINCES_GEO, {
     style: function(f) {
-      const col = canadaKoinColor(f.properties.name);
+      const col = scoreToColor(SALES_SCORES[f.properties.name]);
       return {fillColor:col||'#e5e7eb', fillOpacity:col?0.55:0.05, color:'#fff', weight:1.2, opacity:0.7};
     },
     onEachFeature: function(f, layer) {
@@ -3240,7 +3236,7 @@ function buildCanadaOverlay() {
       layer.bindTooltip('<b>'+prov+'</b><br>'+koinLabel, {sticky:true, className:'reg-tooltip'});
       layer.on('mouseover', function(){ layer.setStyle({fillOpacity:0.8,weight:2}); });
       layer.on('mouseout', function(){
-        const c = canadaKoinColor(prov);
+        const c = scoreToColor(SALES_SCORES[prov]);
         layer.setStyle({fillColor:c||'#e5e7eb',fillOpacity:c?0.55:0.05,color:'#fff',weight:1.2});
       });
       layer.on('click', function(){ selectCanadaProvince(prov); });
@@ -3250,12 +3246,8 @@ function buildCanadaOverlay() {
   // Add numbered bubble pins for each province
   Object.keys(CANADA_PROVINCES).forEach(function(prov) {
     const info = CANADA_PROVINCES[prov];
-    // Bubble color = dominant pipeline stage (like US state bubbles)
-    const list = CANADA_DB[prov] || [];
-    const counts = [0,0,0,0,0,0];
-    list.forEach(function(c){ counts[getStage('CA:'+prov+'||'+c.name)]++; });
-    const domStage = counts.indexOf(Math.max.apply(null,counts));
-    const col = STAGES[domStage] ? STAGES[domStage].color : '#dc2626';
+    // Bubble color = sales priority score gradient (matches province fill)
+    const col = scoreToColor(SALES_SCORES[prov]) || '#f97316';
     const r = Math.max(16, Math.min(36, 10 + Math.sqrt(info.count) * 2.5));
     const icon = L.divIcon({
       className: '',
@@ -3577,16 +3569,77 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 }).addTo(map);
 
 // ── STATE COLOR OVERLAY ───────────────────────────────────────────────────────
+const SALES_SCORES={
+  'Arizona':45,
+  'Arkansas':80,
+  'California':135,
+  'Colorado':50,
+  'Connecticut':25,
+  'Delaware':10,
+  'Florida':70,
+  'Illinois':70,
+  'Indiana':70,
+  'Iowa':50,
+  'Kansas':30,
+  'Kentucky':10,
+  'Louisiana':100,
+  'Maine':10,
+  'Maryland':70,
+  'Michigan':100,
+  'Minnesota':30,
+  'Mississippi':100,
+  'Missouri':70,
+  'Nevada':110,
+  'New Jersey':85,
+  'New York':30,
+  'North Carolina':30,
+  'Ohio':100,
+  'Oklahoma':85,
+  'Pennsylvania':105,
+  'Rhode Island':30,
+  'Texas':60,
+  'Virginia':85,
+  'Washington':0,
+  'West Virginia':50,
+  'Wisconsin':25,
+  'Wyoming':10,  'Alabama':70,
+  'Alaska':10,
+  'Alberta':50,
+  'British Columbia':50,
+  'Idaho':30,
+  'Manitoba':50,
+  'Massachusetts':50,
+  'Montana':25,
+  'Nebraska':45,
+  'New Brunswick':10,
+  'New Mexico':50,
+  'North Dakota':30,
+  'Nova Scotia':10,
+  'Ontario':70,
+  'Oregon':40,
+  'Quebec':50,
+  'Saskatchewan':50,
+  'South Dakota':30,
+
+};
+
+function scoreToColor(score) {
+  if (score === undefined || score === null) return null;
+  if (score >= 120) return '#16a34a';
+  if (score >= 95)  return '#22c55e';
+  if (score >= 75)  return '#84cc16';
+  if (score >= 55)  return '#eab308';
+  if (score >= 40)  return '#f97316';
+  if (score >= 25)  return '#ea580c';
+  if (score >= 10)  return '#dc2626';
+  return '#991b1b';
+}
+
 function getStateColor(state,view){
-  if(view==='moolah'){
-    const mt=MT_STATUS[state];
-    if(!mt)return null;
-    return {approved:'#16a34a',restricted:'#f59e0b',prohibited:'#ef4444'}[mt.status]||null;
-  } else {
-    const reg=REG_STATUS[state];
-    if(!reg)return null;
-    return {yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.cashless]||null;
-  }
+  // Only color states that have casinos in the database
+  if (!SI[state]) return null;
+  const score = SALES_SCORES[state];
+  return scoreToColor(score);
 }
 
 function buildStateOverlay(view){
@@ -3968,12 +4021,10 @@ function setView(view){
 
 function updateLegend(view){
   const legEl=document.getElementById('legbar');if(!legEl)return;
-  const mapColors=view==='moolah'
-    ?[['#16a34a','Approved statewide'],['#f59e0b','Varies by property'],['#ef4444','Prohibited (WA only)']]
-    :[['#16a34a','Approved'],['#f59e0b','Some properties'],['#3b82f6','Pending'],['#ef4444','Not approved']];
+  const mapColors=[['#16a34a','135-120'],['#22c55e','110-95'],['#84cc16','80-75'],['#eab308','70-55'],['#f97316','50-40'],['#ea580c','30-25'],['#dc2626','10'],['#991b1b','0']];
   const pinColors=[['#dc2626','Prospect'],['#ea580c','Meeting'],['#f59e0b','Verbal'],['#3b82f6','Proposal'],['#16a34a','Signed'],['#15803d','Live']];
-  const viewLbl=view==='moolah'?'🏦 MOOLAH PLAY:':'💳 CASHLESS:';
-  legEl.innerHTML='<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.7);margin-right:4px;">'+viewLbl+'</span>'+
+  legEl.innerHTML=
+    '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.7);margin-right:4px;">PRIORITY SCORE:</span>'+
     mapColors.map(function(p){return '<span class="li"><span class="ld" style="background:'+p[0]+';border-radius:3px;width:14px;height:14px;"></span>'+p[1]+'</span>';}).join('')+
     '<span style="color:rgba(255,255,255,.2);margin:0 6px;">|</span>'+
     '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.7);margin-right:4px;">PINS:</span>'+
@@ -4077,8 +4128,8 @@ document.getElementById('btn-reset').addEventListener('click',function(){
   onFilter();
 });
 
-document.getElementById('btn-view-moolah').addEventListener('click',function(){setView('moolah');});
-document.getElementById('btn-view-Koin').addEventListener('click',function(){setView('Koin');});
+
+
 
 document.getElementById('s-sort').addEventListener('change',function(){if(curState)renderPanel();});
 
