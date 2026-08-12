@@ -3078,6 +3078,16 @@ function sfFetchData() {
     const ind = document.getElementById('sf-ind');
     if (ind) { ind.textContent = '✓ SF Synced: ' + matched + ' properties updated'; ind.style.color = '#16a34a'; }
     console.log('SF sync: ' + matched + ' of ' + data.records.length + ' opportunities matched');
+    // Show sync summary in toolbar
+    // Log unmatched for debugging
+    const unmatched = data.records.filter(function(opp) {
+      const key = Object.keys(sfMatchedKeys).find(function(k){ return PL[k] && PL[k].sfOppId === opp.Id; });
+      return !key;
+    });
+    if (unmatched.length > 0) {
+      console.log('SF unmatched opportunities (' + unmatched.length + '):');
+      unmatched.forEach(function(o){ console.log('  - "' + o.Name + '" (Stage: ' + o.StageName + ')'); });
+    }
   })
   .catch(function(e) { console.error('SF fetch error:', e); sfIndicator('error'); });
 }
