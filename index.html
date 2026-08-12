@@ -2783,211 +2783,185 @@ const REAL_CASINOS = {
 
 
 // ── SALESFORCE INTEGRATION ────────────────────────────────────────────────────
-const SF_CLIENT_ID = '3MVG9cHH2bfKACZZqp5GhYpKigmk0Z9TvFSwK0TCskkVRxrmHD0YzeIv5jk_bFILqF4SG_XMzbv765CqQQa2s';
-const SF_INSTANCE  = 'https://markertrax.my.salesforce.com';
-const SF_CALLBACK  = 'https://johnrpeterson22.github.io/Casino-Pipeline-Dashboard/';
-const SF_AUTH_URL  = SF_INSTANCE + '/services/oauth2/authorize';
-const SF_TOKEN_KEY = 'sf_access_token';
-const SF_IURL_KEY  = 'sf_instance_url';
-
+const SF_CLIENT_ID  = '3MVG9cHH2bfKACZZqp5GhYpKigmk0Z9TvFSwK0TCskkVRxrmHD0YzeIv5jk_bFILqF4SG_XMzbv765CqQQa2s';
+const SF_INSTANCE   = 'https://markertrax.my.salesforce.com';
+const SF_TOKEN_URL  = SF_INSTANCE + '/services/oauth2/token';
+const SF_CREDS_KEY  = 'sf_creds_v2';
 let sfToken = null;
-let sfInstanceUrl = null;
-let sfData = {};  // keyed by normalized name -> SF record
+let sfInstanceUrl = SF_INSTANCE;
 
-// Stage label mapping: SF Opportunity StageName -> our 6-stage index
+function sfIndicator(state) {
+  const el = document.getElementById('sf-ind');
+  if (!el) return;
+  if (state === 'connected')  { el.textContent = '✓ SF Synced';    el.style.color = '#16a34a'; }
+  else if (state === 'syncing')  { el.textContent = '⟳ SF Syncing…'; el.style.color = '#f59e0b'; }
+  else if (state === 'error')    { el.textContent = '⚠ SF Error';    el.style.color = '#ef4444'; }
+  else                           { el.textContent = '';               el.style.color = 'rgba(255,255,255,.5)'; }
+}
+
+function sfNorm(s) {
+  return (s||'').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+}
+
 function sfStageToIndex(sfStage) {
   if (!sfStage) return 0;
   const s = sfStage.toLowerCase();
   if (s.includes('prospect') || s.includes('lead') || s.includes('qualify')) return 0;
   if (s.includes('meeting') || s.includes('discovery') || s.includes('contact')) return 1;
-  if (s.includes('verbal') || s.includes('negotiat') || s.includes('proposal')) return 3;
+  if (s.includes('verbal')) return 2;
+  if (s.includes('proposal') || s.includes('negotiat')) return 3;
   if (s.includes('closed won') || s.includes('signed') || s.includes('contract')) return 4;
   if (s.includes('live') || s.includes('implement') || s.includes('active')) return 5;
   return 0;
 }
 
-function sfNorm(s) {
-  return (s || '').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+// Show credentials dialog
+function sfShowLogin() {
+  const stored = (() => { try { const v=localStorage.getItem(SF_CREDS_KEY); return v?JSON.parse(v):{}; } catch(e){return{};} })();
+  const dlg = document.createElement('div');
+  dlg.id = 'sf-dlg';
+  dlg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  dlg.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:24px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,.3);">
+      <h3 style="margin:0 0 16px;font-size:15px;">Salesforce Credentials</h3>
+      <div style="font-size:12px;color:#666;margin-bottom:14px;">Stored locally in your browser only. Used to pull SF data silently.</div>
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Username</label>
+      <input id="sf-user" type="text" value="${stored.user||''}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box;">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Password</label>
+      <input id="sf-pass" type="password" value="${stored.pass||''}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:16px;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="document.getElementById('sf-dlg').remove()" style="padding:8px 16px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;">Cancel</button>
+        <button onclick="sfSaveAndSync()" style="padding:8px 16px;border:none;border-radius:6px;background:#0f6e56;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Save & Sync</button>
+      </div>
+    </div>`;
+  document.body.appendChild(dlg);
+  setTimeout(function(){document.getElementById('sf-user').focus();},100);
 }
 
-function sfIndicator(state) {
-  const el = document.getElementById('sf-ind');
-  if (!el) return;
-  if (state === 'connected') { el.textContent = '✓ SF Connected'; el.style.color = '#16a34a'; }
-  else if (state === 'syncing') { el.textContent = '⟳ SF Syncing…'; el.style.color = '#f59e0b'; }
-  else if (state === 'error') { el.textContent = '⚠ SF Error'; el.style.color = '#ef4444'; }
-  else { el.textContent = '☁ Connect Salesforce'; el.style.color = 'rgba(255,255,255,.5)'; }
+function sfSaveAndSync() {
+  const user = document.getElementById('sf-user').value.trim();
+  const pass = document.getElementById('sf-pass').value;
+  if (!user || !pass) { alert('Please enter both username and password.'); return; }
+  try { localStorage.setItem(SF_CREDS_KEY, JSON.stringify({user,pass})); } catch(e) {}
+  document.getElementById('sf-dlg').remove();
+  sfDoSync(user, pass);
 }
 
-// Check if we have a stored token on load
-function sfInit() {
-  // Check for OAuth callback token in URL hash
-  if (window.location.hash && window.location.hash.includes('access_token')) {
-    const params = new URLSearchParams(window.location.hash.substring(1));
-    sfToken = params.get('access_token');
-    sfInstanceUrl = params.get('instance_url') || SF_INSTANCE;
-    if (sfToken) {
-      try { localStorage.setItem(SF_TOKEN_KEY, sfToken); localStorage.setItem(SF_IURL_KEY, sfInstanceUrl); } catch(e) {}
-      // Clean URL
-      window.history.replaceState(null, '', window.location.pathname);
-      sfSync();
+function sfConnect() {
+  // Check if we have stored creds
+  try {
+    const stored = JSON.parse(localStorage.getItem(SF_CREDS_KEY)||'{}');
+    if (stored.user && stored.pass) {
+      sfDoSync(stored.user, stored.pass);
       return;
     }
-  }
-  // Try stored token
-  try {
-    sfToken = localStorage.getItem(SF_TOKEN_KEY);
-    sfInstanceUrl = localStorage.getItem(SF_IURL_KEY) || SF_INSTANCE;
   } catch(e) {}
-  if (sfToken) { sfSync(); }
+  sfShowLogin();
 }
 
-// Launch SF OAuth login
-function sfConnect() {
-  if (sfToken) {
-    if (confirm('Already connected to Salesforce. Re-sync now?')) { sfSync(); }
-    return;
-  }
-  const params = new URLSearchParams({
-    response_type: 'token',
-    client_id: SF_CLIENT_ID,
-    redirect_uri: SF_CALLBACK,
-    scope: 'full',
-  });
-  window.location.href = SF_AUTH_URL + '?' + params.toString();
-}
-
-// Query SF and merge into PL store
-function sfSync() {
-  if (!sfToken) { sfConnect(); return; }
+function sfDoSync(user, pass) {
   sfIndicator('syncing');
+  // Step 1: get access token via username-password flow
+  const body = new URLSearchParams({
+    grant_type: 'password',
+    client_id: SF_CLIENT_ID,
+    client_secret: '86315ECA5AD05A853F0155B58FF765E74F9616AFADEA6F0E058FA6978751E214',
+    username: user,
+    password: pass,
+  });
+  fetch(SF_TOKEN_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: body.toString()
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(auth) {
+    if (!auth.access_token) {
+      console.error('SF auth failed:', auth);
+      sfIndicator('error');
+      if (auth.error_description) alert('Salesforce login failed: ' + auth.error_description);
+      return;
+    }
+    sfToken = auth.access_token;
+    sfInstanceUrl = auth.instance_url || SF_INSTANCE;
+    sfFetchData();
+  })
+  .catch(function(e) {
+    console.error('SF auth error:', e);
+    sfIndicator('error');
+  });
+}
+
+function sfFetchData() {
   const query = encodeURIComponent(
-    "SELECT Id, Name, BillingState, BillingCity, Type, NumberOfEmployees, " +
-    "(SELECT Id, Name, StageName, CloseDate FROM Opportunities ORDER BY LastModifiedDate DESC LIMIT 1), " +
+    "SELECT Id, Name, BillingState, BillingCity, Type, " +
+    "(SELECT Id, Name, StageName FROM Opportunities ORDER BY LastModifiedDate DESC LIMIT 1), " +
     "(SELECT Id, FirstName, LastName, Title, Phone, Email FROM Contacts LIMIT 1) " +
     "FROM Account LIMIT 2000"
   );
   fetch(sfInstanceUrl + '/services/data/v59.0/query?q=' + query, {
-    headers: { 'Authorization': 'Bearer ' + sfToken, 'Content-Type': 'application/json' }
+    headers: {'Authorization': 'Bearer ' + sfToken}
   })
-  .then(function(r) {
-    if (r.status === 401) {
-      try { localStorage.removeItem(SF_TOKEN_KEY); } catch(e) {}
-      sfToken = null; sfIndicator('error');
-      return null;
-    }
-    return r.json();
-  })
+  .then(function(r) { return r.json(); })
   .then(function(data) {
-    if (!data || !data.records) return;
-    let matched = 0;
-    // Track which DB casino keys have been matched to a SF record
-    // so we can mark unmatched near-duplicates as hidden
+    if (!data || !data.records) { sfIndicator('error'); return; }
     const sfMatchedKeys = {};
-
+    let matched = 0;
     data.records.forEach(function(acc) {
       const normName = sfNorm(acc.Name);
-      const sfState = acc.BillingState || '';
-
-      // Find the best matching casino in our DB
-      // Prefer: exact name + state match, then exact name any state, then close name same state
-      let bestMatch = null;
-      let bestScore = 0;
-
+      let bestMatch = null, bestScore = 0;
       Object.keys(DB).forEach(function(dbState) {
-        (DB[dbState] || []).forEach(function(casino) {
+        (DB[dbState]||[]).forEach(function(casino) {
           const cn = sfNorm(casino.name);
           let score = 0;
-          if (cn === normName) {
-            score = sfState && dbState === sfState ? 100 : 80;
-          } else {
-            // Check if one contains the other (handles "Wynn" vs "Wynn Las Vegas")
-            if (cn.includes(normName) || normName.includes(cn)) {
-              score = sfState && dbState === sfState ? 60 : 40;
-            }
-          }
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = casino;
-          }
+          if (cn === normName) score = acc.BillingState && dbState === acc.BillingState ? 100 : 80;
+          else if (cn.includes(normName) || normName.includes(cn)) score = acc.BillingState && dbState === acc.BillingState ? 60 : 40;
+          if (score > bestScore) { bestScore = score; bestMatch = casino; }
         });
       });
-
       if (bestMatch && bestScore >= 60) {
         const key = bestMatch.state + '||' + bestMatch.name;
         sfMatchedKeys[key] = true;
-
-        // SF is authoritative - update the casino object directly in DB
-        // Override name, city, state with SF values
-        if (acc.BillingCity) bestMatch.city = acc.BillingCity;
-        if (acc.BillingState) bestMatch.sfState = acc.BillingState;
-        bestMatch.sfId = acc.Id;
-        bestMatch.sfName = acc.Name; // store SF name for display
-        bestMatch.isSF = true;
-
-        // Update PL record with SF pipeline/contact data
-        if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
+        if (!PL[key]) PL[key] = {stage:0,history:[],notes:'',contact:''};
         PL[key].sfId = acc.Id;
         PL[key].sfName = acc.Name;
-
-        // SF opportunity stage wins
+        bestMatch.isSF = true;
+        if (acc.BillingCity) bestMatch.city = acc.BillingCity;
         const opp = acc.Opportunities && acc.Opportunities.records && acc.Opportunities.records[0];
-        if (opp) {
-          PL[key].stage = sfStageToIndex(opp.StageName);
-          PL[key].sfStage = opp.StageName;
-          PL[key].sfOppId = opp.Id;
-        }
-
-        // SF contact wins
+        if (opp) { PL[key].stage = sfStageToIndex(opp.StageName); PL[key].sfStage = opp.StageName; }
         const contact = acc.Contacts && acc.Contacts.records && acc.Contacts.records[0];
         if (contact) {
-          const name = ((contact.FirstName || '') + ' ' + (contact.LastName || '')).trim();
-          const title = contact.Title ? ' — ' + contact.Title : '';
-          const phone = contact.Phone ? ' | ' + contact.Phone : '';
-          PL[key].contact = name + title + phone;
-          PL[key].sfContactEmail = contact.Email || '';
+          PL[key].contact = ((contact.FirstName||'')+' '+(contact.LastName||'')).trim() +
+            (contact.Title?' — '+contact.Title:'') + (contact.Phone?' | '+contact.Phone:'');
+          PL[key].sfContactEmail = contact.Email||'';
         }
         matched++;
       }
     });
-
-    // Now check for near-duplicate map entries that represent the same property
-    // as a matched SF record - hide them so only one shows
+    // Hide map duplicates of SF properties
     Object.keys(DB).forEach(function(dbState) {
-      (DB[dbState] || []).forEach(function(casino) {
-        const key = casino.state + '||' + casino.name;
-        if (sfMatchedKeys[key]) return; // this IS the SF match, keep it
-        if (casino.isSF) return; // already marked
-
-        // Check if this casino's name closely matches any SF-matched casino
+      (DB[dbState]||[]).forEach(function(casino) {
+        const key = casino.state+'||'+casino.name;
+        if (sfMatchedKeys[key] || casino.isSF) return;
         Object.keys(sfMatchedKeys).forEach(function(sfKey) {
-          const sfCasinoName = sfKey.split('||')[1];
-          const cn = sfNorm(casino.name);
-          const sn = sfNorm(sfCasinoName);
-          // If names are very similar and same state - this is a duplicate
-          if (cn === sn || cn.includes(sn) || sn.includes(cn)) {
-            if (casino.state === sfKey.split('||')[0]) {
-              // Mark as duplicate - hide it
-              if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
-              PL[key].sfDuplicate = true;
-              PL[key].deleted = true; // hide from map and list
-            }
+          const sfName = sfKey.split('||')[1];
+          const cn = sfNorm(casino.name), sn = sfNorm(sfName);
+          if ((cn===sn||cn.includes(sn)||sn.includes(cn)) && casino.state===sfKey.split('||')[0]) {
+            if (!PL[key]) PL[key] = {stage:0,history:[],notes:'',contact:''};
+            PL[key].deleted = true;
           }
         });
       });
     });
-
     savePL();
     sfIndicator('connected');
     refreshStateMarkers();
     if (curState) { clearCasinoMarkers(); buildCasinoMarkers(curState); renderPanel(); }
-    console.log('SF sync: ' + matched + '/' + data.records.length + ' SF accounts matched to map properties');
+    console.log('SF sync: '+matched+'/'+data.records.length+' accounts matched');
   })
-  .catch(function(e) {
-    console.error('SF sync error:', e);
-    sfIndicator('error');
-  });
+  .catch(function(e) { console.error('SF fetch error:',e); sfIndicator('error'); });
 }
+
 
 // ── HASH UTILS ────────────────────────────────────────────────────────────────
 function sh(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return Math.abs(h);}
