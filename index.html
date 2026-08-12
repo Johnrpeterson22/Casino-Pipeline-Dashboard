@@ -3610,6 +3610,42 @@ document.getElementById('btn-view-Koin').addEventListener('click',function(){set
 document.getElementById('s-sort').addEventListener('change',function(){if(curState)renderPanel();});
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+
+// Initialize SF - capture token from URL hash if present, or restore from storage
+function sfInit() {
+  // Check if SF just redirected back with token in URL hash
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    const p = new URLSearchParams(window.location.hash.substring(1));
+    const token = p.get('access_token');
+    const iurl = p.get('instance_url');
+    if (token) {
+      sfToken = token;
+      sfInstanceUrl = iurl || sfInstanceUrl;
+      try {
+        localStorage.setItem('sf_token_v2', token);
+        localStorage.setItem('sf_iurl_v2', sfInstanceUrl);
+      } catch(e) {}
+      // Clean URL
+      window.history.replaceState(null, '', window.location.pathname);
+      // Auto sync now
+      sfFetchData();
+      return;
+    }
+  }
+  // Restore stored token
+  try {
+    const token = localStorage.getItem('sf_token_v2');
+    const iurl = localStorage.getItem('sf_iurl_v2');
+    if (token) {
+      sfToken = token;
+      sfInstanceUrl = iurl || sfInstanceUrl;
+      sfIndicator('connected');
+      const sfBtn = document.getElementById('sf-connect-btn');
+      if (sfBtn) sfBtn.textContent = '✓ SF Connected';
+    }
+  } catch(e) {}
+}
+
 buildStateMarkers();
 buildStateOverlay('moolah');
 updateLegend('moolah');
