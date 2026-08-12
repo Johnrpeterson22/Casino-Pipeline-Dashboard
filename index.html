@@ -2807,13 +2807,20 @@ function sfNorm(s) {
 
 function sfStageToIndex(sfStage) {
   if (!sfStage) return 0;
-  const s = sfStage.toLowerCase();
-  if (s.includes('prospect') || s.includes('lead') || s.includes('qualify')) return 0;
-  if (s.includes('meeting') || s.includes('discovery') || s.includes('contact')) return 1;
-  if (s.includes('verbal')) return 2;
-  if (s.includes('proposal') || s.includes('negotiat')) return 3;
-  if (s.includes('closed won') || s.includes('signed') || s.includes('contract')) return 4;
-  if (s.includes('live') || s.includes('implement') || s.includes('active')) return 5;
+  const s = sfStage.toLowerCase().trim();
+  if (s === 'prospect')                return 0;
+  if (s === 'meeting')                 return 1;
+  if (s === 'verbal')                  return 2;
+  if (s === 'proposal')                return 3;
+  if (s === 'signed')                  return 4;
+  if (s === 'live')                    return 5;
+  // Fallback fuzzy match
+  if (s.includes('prospect'))          return 0;
+  if (s.includes('meeting'))           return 1;
+  if (s.includes('verbal'))            return 2;
+  if (s.includes('proposal'))          return 3;
+  if (s.includes('signed'))            return 4;
+  if (s.includes('live'))              return 5;
   return 0;
 }
 
@@ -2889,83 +2896,131 @@ function sfDoSync(user, pass) {
   });
 }
 
+
+// Push a record update back to Salesforce Opportunity
+function sfPushRecord(oppId, rec) {
+  if (!sfToken || !oppId) return;
+  const stageNames = ['Prospect','Meeting','Verbal','Proposal','Signed','Live'];
+  const body = {};
+  if (rec.stage !== undefined) body.StageName = stageNames[rec.stage] || 'Prospect';
+  if (rec.nextStep)  body.NextStep    = rec.nextStep;
+  if (rec.notes)     body.Description = rec.notes;
+  fetch(sfInstanceUrl + '/services/data/v59.0/sobjects/Opportunity/' + oppId, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': 'Bearer ' + sfToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  })
+  .then(function(r) {
+    if (r.status === 204) {
+      console.log('SF updated: ' + oppId);
+    } else {
+      r.json().then(function(e){ console.warn('SF update failed:', e); });
+    }
+  })
+  .catch(function(e){ console.warn('SF push error:', e); });
+}
+
 function sfFetchData() {
+  // Query Opportunities directly - Opportunity Name = casino name, Stage = pipeline stage
   const query = encodeURIComponent(
-    "SELECT Id, Name, BillingState, BillingCity, Type, " +
-    "(SELECT Id, Name, StageName FROM Opportunities ORDER BY LastModifiedDate DESC LIMIT 1), " +
-    "(SELECT Id, FirstName, LastName, Title, Phone, Email FROM Contacts LIMIT 1) " +
-    "FROM Account LIMIT 2000"
+    "SELECT Id, Name, StageName, NextStep, Account.Name, Account.BillingState, Account.BillingCity, " +
+    "Owner.Name, CloseDate, Description, " +
+    "(SELECT Id, FirstName, LastName, Title, Phone, Email FROM Account.Contacts LIMIT 1) " +
+    "FROM Opportunity ORDER BY LastModifiedDate DESC LIMIT 2000"
   );
   fetch(sfInstanceUrl + '/services/data/v59.0/query?q=' + query, {
     headers: {'Authorization': 'Bearer ' + sfToken}
   })
-  .then(function(r) { return r.json(); })
+  .then(function(r) {
+    if (r.status === 401) {
+      try { localStorage.removeItem('sf_token_v2'); } catch(e) {}
+      sfToken = null; sfIndicator('error'); return null;
+    }
+    return r.json();
+  })
   .then(function(data) {
     if (!data || !data.records) { sfIndicator('error'); return; }
     const sfMatchedKeys = {};
     let matched = 0;
-    data.records.forEach(function(acc) {
-      const normName = sfNorm(acc.Name);
+
+    data.records.forEach(function(opp) {
+      // Opportunity Name is the casino name
+      const oppName = opp.Name || '';
+      const accName = (opp.Account && opp.Account.Name) || '';
+      const sfState = (opp.Account && opp.Account.BillingState) || '';
+      const sfCity  = (opp.Account && opp.Account.BillingCity)  || '';
+
+      // Try matching on Opportunity Name first, then Account Name
       let bestMatch = null, bestScore = 0;
-      Object.keys(DB).forEach(function(dbState) {
-        (DB[dbState]||[]).forEach(function(casino) {
-          const cn = sfNorm(casino.name);
-          let score = 0;
-          if (cn === normName) score = acc.BillingState && dbState === acc.BillingState ? 100 : 80;
-          else if (cn.includes(normName) || normName.includes(cn)) score = acc.BillingState && dbState === acc.BillingState ? 60 : 40;
-          if (score > bestScore) { bestScore = score; bestMatch = casino; }
+      [oppName, accName].forEach(function(nameToTry) {
+        if (!nameToTry) return;
+        const normName = sfNorm(nameToTry);
+        Object.keys(DB).forEach(function(dbState) {
+          (DB[dbState]||[]).forEach(function(casino) {
+            const cn = sfNorm(casino.name);
+            let score = 0;
+            if (cn === normName) {
+              score = sfState && dbState === sfState ? 100 : 80;
+            } else if (cn.includes(normName) || normName.includes(cn)) {
+              score = sfState && dbState === sfState ? 65 : 45;
+            }
+            if (score > bestScore) { bestScore = score; bestMatch = casino; }
+          });
         });
       });
-      if (bestMatch && bestScore >= 60) {
+
+      if (bestMatch && bestScore >= 65) {
         const key = bestMatch.state + '||' + bestMatch.name;
-        sfMatchedKeys[key] = true;
-        if (!PL[key]) PL[key] = {stage:0,history:[],notes:'',contact:''};
-        PL[key].sfId = acc.Id;
-        PL[key].sfName = acc.Name;
+        // Only update if this is a better/newer match for this casino
+        if (sfMatchedKeys[key] && sfMatchedKeys[key] >= bestScore) return;
+        sfMatchedKeys[key] = bestScore;
+
+        if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
+
+        // SF Stage maps directly to our stage labels
+        const stageMap = {
+          'prospect': 0, 'meeting': 1, 'verbal': 2,
+          'proposal': 3, 'signed': 4, 'live': 5
+        };
+        const sfStageLower = (opp.StageName || '').toLowerCase();
+        let stageIdx = 0;
+        Object.keys(stageMap).forEach(function(k) {
+          if (sfStageLower.includes(k)) stageIdx = stageMap[k];
+        });
+
+        PL[key].stage    = stageIdx;
+        PL[key].sfStage  = opp.StageName;
+        PL[key].sfOppId  = opp.Id;
+        PL[key].sfName   = oppName;
+        PL[key].sfOwner  = opp.Owner ? opp.Owner.Name : '';
+        if (opp.Description) PL[key].notes = opp.Description;
+        if (opp.NextStep) PL[key].nextStep = opp.NextStep;
+
+        // Update casino city from SF if available
+        if (sfCity) bestMatch.city = sfCity;
         bestMatch.isSF = true;
-        if (acc.BillingCity) bestMatch.city = acc.BillingCity;
-        const opp = acc.Opportunities && acc.Opportunities.records && acc.Opportunities.records[0];
-        if (opp) { PL[key].stage = sfStageToIndex(opp.StageName); PL[key].sfStage = opp.StageName; }
-        const contact = acc.Contacts && acc.Contacts.records && acc.Contacts.records[0];
-        if (contact) {
-          PL[key].contact = ((contact.FirstName||'')+' '+(contact.LastName||'')).trim() +
-            (contact.Title?' — '+contact.Title:'') + (contact.Phone?' | '+contact.Phone:'');
-          PL[key].sfContactEmail = contact.Email||'';
-        }
+
         matched++;
       }
     });
-    // Hide map duplicates of SF properties
-    Object.keys(DB).forEach(function(dbState) {
-      (DB[dbState]||[]).forEach(function(casino) {
-        const key = casino.state+'||'+casino.name;
-        if (sfMatchedKeys[key] || casino.isSF) return;
-        Object.keys(sfMatchedKeys).forEach(function(sfKey) {
-          const sfName = sfKey.split('||')[1];
-          const cn = sfNorm(casino.name), sn = sfNorm(sfName);
-          if ((cn===sn||cn.includes(sn)||sn.includes(cn)) && casino.state===sfKey.split('||')[0]) {
-            if (!PL[key]) PL[key] = {stage:0,history:[],notes:'',contact:''};
-            PL[key].deleted = true;
-          }
-        });
-      });
-    });
+
     savePL();
     sfIndicator('connected');
-    // Full map refresh after SF data loaded
     refreshStateMarkers();
-    if (curState) {
-      clearCasinoMarkers();
-      buildCasinoMarkers(curState);
-      renderPanel();
-    }
-    console.log('SF sync complete: ' + matched + '/' + data.records.length + ' SF accounts matched to map');
-    // Show summary to user
-    try { setSyncIndicator('synced'); } catch(e) {}
+    if (curState) { clearCasinoMarkers(); buildCasinoMarkers(curState); renderPanel(); }
+
     const sfBtn = document.getElementById('sf-connect-btn');
-    if (sfBtn) { sfBtn.textContent = '✓ SF Synced (' + matched + ')'; sfBtn.style.color = '#16a34a'; }
+    if (sfBtn) {
+      sfBtn.textContent = '✓ SF Synced (' + matched + '/' + data.records.length + ')';
+      sfBtn.style.color = '#16a34a';
+      sfBtn.style.borderColor = '#16a34a';
+    }
+    console.log('SF sync: ' + matched + ' of ' + data.records.length + ' opportunities matched');
   })
-  .catch(function(e) { console.error('SF fetch error:',e); sfIndicator('error'); });
+  .catch(function(e) { console.error('SF fetch error:', e); sfIndicator('error'); });
 }
 
 
@@ -3052,6 +3107,10 @@ function setStage(key,stage){
   PL[key].stage=stage;
   PL[key].history=(PL[key].history||[]).concat({stage,ts:new Date().toISOString()});
   savePL();
+  // Push stage change to SF if connected
+  if(sfToken && PL[key].sfOppId) {
+    sfPushRecord(PL[key].sfOppId, PL[key]);
+  }
 }
 
 // ── BUILD DATABASE ────────────────────────────────────────────────────────────
@@ -3380,8 +3439,10 @@ function renderDetail(p){
     '</div>'+
     '<div class="sec-lbl">Contact</div>'+
     '<input class="fi" id="fi-contact" type="text" placeholder="Contact name / title" value="'+(rec.contact||'')+'">'+
+    '<div class="sec-lbl">Next Step</div>'+
+    '<input class="fi" id="fi-nextstep" type="text" placeholder="Next step..." value="'+(rec.nextStep||'')+'">'+
     '<div class="sec-lbl">Notes</div>'+
-    '<textarea class="fi" id="fi-notes" rows="3" placeholder="Meeting notes, next steps...">'+(rec.notes||'')+'</textarea>'+
+    '<textarea class="fi" id="fi-notes" rows="3" placeholder="Meeting notes...">'+(rec.notes||'')+'</textarea>'+
     '<button class="save-btn" onclick="saveRecord(\''+p.state.replace(/'/g,"\\'")+"','"+p.name.replace(/'/g,"\\'")+'\')" >Save</button>'+
     '<div class="saved-msg" id="saved-msg">✓ Saved</div>'+
     (hist?'<div class="sec-lbl">History</div><div class="hist-box">'+hist+'</div>':'')+
@@ -3428,6 +3489,7 @@ function saveRecord(state,name){
   const key=state+'||'+name;
   if(!PL[key])PL[key]={stage:getStage(key),history:[],notes:'',contact:''};
   PL[key].notes=document.getElementById('fi-notes').value;
+  PL[key].nextStep=document.getElementById('fi-nextstep')?document.getElementById('fi-nextstep').value:'';
   PL[key].contact=document.getElementById('fi-contact').value;
   PL[key].type=document.getElementById('fi-type').value;
   PL[key].cms=document.getElementById('fi-cms').value;
@@ -3446,6 +3508,10 @@ function saveRecord(state,name){
   if(curState===state)renderPanel();
   const msg=document.getElementById('saved-msg');
   if(msg){msg.style.display='block';setTimeout(function(){msg.style.display='none';},1500);}
+  // Push to Salesforce if connected and we have an Opportunity ID
+  if(sfToken && PL[key] && PL[key].sfOppId) {
+    sfPushRecord(PL[key].sfOppId, PL[key]);
+  }
 }
 
 // ── VIEW TOGGLE ───────────────────────────────────────────────────────────────
