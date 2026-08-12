@@ -1,36 +1,4 @@
-// Check if we have a stored token on load
-function sfInit() {
-  // First check if SF just redirected back to us with a token in the URL hash
-  if (window.location.hash && window.location.hash.includes('access_token')) {
-    const p = new URLSearchParams(window.location.hash.substring(1));
-    const token = p.get('access_token');
-    const iurl = p.get('instance_url');
-    if (token) {
-      sfToken = token;
-      sfInstanceUrl = iurl || sfInstanceUrl;
-      try {
-        localStorage.setItem('sf_token_v2', token);
-        localStorage.setItem('sf_iurl_v2', sfInstanceUrl);
-      } catch(e) {}
-      // Clean the URL hash so it doesn't show
-      window.history.replaceState(null, '', window.location.pathname);
-      sfIndicator('connected');
-      // Auto-sync since we just got the token
-      setTimeout(sfFetchData, 500);
-      return;
-    }
-  }
-  // Otherwise restore from stored token
-  try {
-    const token = localStorage.getItem('sf_token_v2');
-    const iurl = localStorage.getItem('sf_iurl_v2');
-    if (token) {
-      sfToken = token;
-      sfInstanceUrl = iurl || sfInstanceUrl;
-      sfIndicator('connected');
-    }
-  } catch(e) {}
-}<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
