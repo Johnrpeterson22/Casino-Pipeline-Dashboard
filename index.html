@@ -701,7 +701,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .sb .sv{font-size:14px;font-weight:600;color:#111;}
 #col-hdr{display:grid;grid-template-columns:1fr 58px 90px;gap:4px;padding:4px 10px;font-size:9px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #e5e3de;background:#f7f6f2;flex-shrink:0;}
 #list{flex:1;overflow-y:auto;}
-.crow{display:grid;grid-template-columns:1fr 58px 90px;gap:4px;padding:7px 10px;border-bottom:1px solid #f0eeea;align-items:center;cursor:pointer;}
+.crow,.ca-crow{display:grid;grid-template-columns:1fr 58px 90px;gap:4px;padding:7px 10px;border-bottom:1px solid #f0eeea;align-items:center;cursor:pointer;}
 .crow:hover,.crow.sel{background:#eef5f1;}
 .crow.sel{border-left:3px solid #0f6e56;padding-left:7px;}
 .cn{font-size:12px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -3312,9 +3312,9 @@ function renderCanadaPanel(prov) {
     const stage = getStage(key);
     const sc = STAGES[stage];
     const badge = c.type==='Tribal'?'bt':c.type==='Commercial'?'bc':'br';
-    return '<div class="crow" data-prov="'+prov+'" data-ci="'+i+'"><div><div class="cn">'+c.name+'</div><div class="cs">'+c.city+'</div></div><div><span class="badge '+badge+'">'+c.type+'</span></div><div><span class="spill" style="background:'+sc.color+'">'+sc.short+'</span></div></div>';
+    return '<div class="ca-crow" data-prov="'+prov+'" data-ci="'+i+'"><div><div class="cn">'+c.name+'</div><div class="cs">'+c.city+'</div></div><div><span class="badge '+badge+'">'+c.type+'</span></div><div><span class="spill" style="background:'+sc.color+'">'+sc.short+'</span></div></div>';
   }).join('');
-  listEl.querySelectorAll('.crow').forEach(function(row) {
+  listEl.querySelectorAll('.ca-crow').forEach(function(row) {
     row.addEventListener('click', function() {
       const prov2 = row.dataset.prov;
       const ci = parseInt(row.dataset.ci);
@@ -3354,6 +3354,11 @@ function openCanadaDetail(c, prov) {
     '<div class="dfield"><div class="dfl">Type</div><div class="dfv">'+c.type+'</div></div>'+
     '<div class="dfield"><div class="dfl">Est. Slots</div><div class="dfv">'+c.slots.toLocaleString()+'</div></div>'+
     '</div>'+
+    '<div class="sec-lbl">CMS</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
+    '<div><div class="dfl" style="margin-bottom:2px;">CMS</div><input class="fi" id="fi-cms" type="text" placeholder="e.g. Konami" style="margin-bottom:0;font-size:11px;" value="'+(rec.cms||'')+'"></div>'+
+    '<div><div class="dfl" style="margin-bottom:2px;">Version</div><input class="fi" id="fi-version" type="text" placeholder="e.g. SYNKROS 6.2" style="margin-bottom:0;font-size:11px;" value="'+(rec.version||'')+'"></div>'+
+    '</div>'+
     '<div class="sec-lbl">Next Step</div>'+
     '<input class="fi" id="fi-nextstep" type="text" placeholder="Next step..." value="'+(rec.nextStep||'')+'">'+
     '<div class="sec-lbl">Contact</div>'+
@@ -3386,6 +3391,8 @@ function saveCanadaRecord(prov, name) {
   PL[key].notes = document.getElementById('fi-notes').value;
   PL[key].contact = document.getElementById('fi-contact').value;
   PL[key].nextStep = document.getElementById('fi-nextstep') ? document.getElementById('fi-nextstep').value : '';
+  PL[key].cms = document.getElementById('fi-cms') ? document.getElementById('fi-cms').value : '';
+  PL[key].version = document.getElementById('fi-version') ? document.getElementById('fi-version').value : '';
   savePL();
   const msg = document.getElementById('saved-msg');
   if (msg) { msg.style.display='block'; setTimeout(function(){msg.style.display='none';},1500); }
@@ -3813,6 +3820,7 @@ function renderDetail(p){
     '<div><div class="dfl" style="margin-bottom:2px;">CMS</div><select class="fi" id="fi-cms" style="margin-bottom:0;font-size:11px;">'+
       ALL_CMS.map(function(c){return '<option value="'+c+'"'+(c===p.cms?' selected':'')+'>'+c+'</option>';}).join('')+
     '</select></div>'+
+    '<div><div class="dfl" style="margin-bottom:2px;">Version</div><input class="fi" id="fi-version" type="text" placeholder="e.g. SYNKROS 6.2" style="margin-bottom:0;font-size:11px;" value="'+(rec.version||'')+'"></div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Est. Slots</div><input class="fi" id="fi-slots" type="number" min="0" style="margin-bottom:0;" value="'+p.slots+'"></div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Tables</div><input class="fi" id="fi-tables" type="number" min="0" style="margin-bottom:0;" value="'+p.tables+'"></div>'+
     '</div>'+
@@ -3872,6 +3880,7 @@ function saveRecord(state,name){
   PL[key].contact=document.getElementById('fi-contact').value;
   PL[key].type=document.getElementById('fi-type').value;
   PL[key].cms=document.getElementById('fi-cms').value;
+  PL[key].version=document.getElementById('fi-version')?document.getElementById('fi-version').value:'';
   PL[key].slots=Math.max(0,parseInt(document.getElementById('fi-slots').value)||0);
   PL[key].tables=Math.max(0,parseInt(document.getElementById('fi-tables').value)||0);
   savePL();
