@@ -754,6 +754,7 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
   <select id="s-stage"><option value="">All stages</option><option value="0">Prospect</option><option value="1">Meeting</option><option value="2">Verbal</option><option value="3">Proposal</option><option value="4">Signed</option><option value="5">Live</option></select>
   <select id="s-sort"><option value="name">Sort: A–Z</option><option value="stage-asc">Stage ↑</option><option value="stage-desc">Stage ↓</option></select>
   <button id="btn-reset">↺ Reset</button>
+  <button id="btn-reset-stages" title="Reset all stages to Prospect (keeps SF stages)" style="height:30px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;">↺ Reset Stages</button>
   <button id="btn-restore" title="Show hidden properties again" style="height:30px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;">👁 Restore hidden</button>
   <button id="sf-connect-btn" onclick="sfConnect()" style="height:30px;padding:0 10px;border-radius:6px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.55);font-size:11px;font-weight:600;cursor:pointer;">☁ Connect Salesforce</button>
   <span id="sf-ind" style="font-size:11px;color:rgba(255,255,255,.5);margin-right:4px;"></span>
@@ -3041,6 +3042,17 @@ function sfFetchData() {
       }
     });
 
+    // Reset all non-SF properties to Prospect (0) - SF is the only source of truth for stages
+    Object.keys(PL).forEach(function(key) {
+      if (!sfMatchedKeys[key] && PL[key] && !PL[key].sfDuplicate) {
+        // Only reset if this wasn't manually set after SF sync
+        // (we detect this by checking if it has no sfOppId)
+        if (!PL[key].sfOppId) {
+          PL[key].stage = 0;
+        }
+      }
+    });
+
     savePL();
     sfIndicator('connected');
     // Rebuild ALL state markers to reflect new SF stages
@@ -3318,7 +3330,9 @@ function renderCanadaPanel(prov) {
     row.addEventListener('click', function() {
       const prov2 = row.dataset.prov;
       const ci = parseInt(row.dataset.ci);
-      openCanadaDetail(CANADA_DB[prov2][ci], prov2);
+      const c = CANADA_DB[prov2][ci];
+      if (c) map.flyTo([c.lat, c.lon], 14, {duration:0.7});
+      openCanadaDetail(c, prov2);
     });
   });
 }
@@ -3746,7 +3760,15 @@ function renderPanel(){
     const sc=STAGES[stage];
     return '<div class="crow" data-i="'+i+'"><div><div class="cn" title="'+p.name+'">'+p.name+'</div><div class="cs">'+p.city+' · '+p.cms+'</div></div><div><span class="badge '+tBadge(p.type)+'">'+p.type+'</span></div><div><span class="spill" style="background:'+sc.color+'">'+sc.short+'</span></div></div>';
   }).join('');
-  listEl.querySelectorAll('.crow').forEach(function(row){row.addEventListener('click',function(){openDetail(+row.dataset.i,null);});});
+  listEl.querySelectorAll('.crow').forEach(function(row){row.addEventListener('click',function(){
+    const idx = +row.dataset.i;
+    const p = curList[idx];
+    if (p) {
+      const coords = CASINO_COORDS[p.name];
+      if (coords) map.flyTo(coords, 14, {duration:0.7});
+    }
+    openDetail(idx, null);
+  });});
 }
 
 function openDetail(idx,pOverride){
@@ -3970,6 +3992,18 @@ document.getElementById('s-type').addEventListener('change',onFilter);
 document.getElementById('s-cms').addEventListener('change',onFilter);
 document.getElementById('s-stage').addEventListener('change',onFilter);
 
+document.getElementById('btn-reset-stages').addEventListener('click',function(){
+  if(!confirm('Reset ALL pipeline stages to Prospect? Only SF-connected properties will keep their stages.')) return;
+  Object.keys(PL).forEach(function(key){
+    if(PL[key] && !PL[key].sfOppId) {
+      PL[key].stage = 0;
+    }
+  });
+  savePL();
+  refreshStateMarkers();
+  if(curState && !curState.startsWith('CA:')) { clearCasinoMarkers(); buildCasinoMarkers(curState); renderPanel(); }
+  alert('Done — all non-SF stages reset to Prospect.');
+});
 document.getElementById('btn-restore').addEventListener('click',function(){
   const hidden=Object.keys(PL).filter(function(k){return PL[k]&&PL[k].deleted;});
   if(!hidden.length){alert('No hidden properties to restore.');return;}
