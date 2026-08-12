@@ -754,6 +754,7 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
   <select id="s-stage"><option value="">All stages</option><option value="0">Prospect</option><option value="1">Meeting</option><option value="2">Verbal</option><option value="3">Proposal</option><option value="4">Signed</option><option value="5">Live</option></select>
   <select id="s-sort"><option value="name">Sort: A–Z</option><option value="stage-asc">Stage ↑</option><option value="stage-desc">Stage ↓</option></select>
   <button id="btn-reset">↺ Reset</button>
+  <button id="btn-add-property" onclick="openAddProperty()" style="height:30px;padding:0 10px;border-radius:6px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.7);font-size:11px;font-weight:600;cursor:pointer;">+ Add Property</button>
   <button id="btn-restore" title="Show hidden properties again" style="height:30px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;">👁 Restore hidden</button>
   <button id="sf-connect-btn" onclick="sfConnect()" style="height:30px;padding:0 10px;border-radius:6px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.55);font-size:11px;font-weight:600;cursor:pointer;">☁ Connect Salesforce</button>
   <button onclick="sfReconnect()" style="height:30px;padding:0 10px;border-radius:6px;border:1.5px solid rgba(255,100,100,.5);background:transparent;color:rgba(255,150,150,.8);font-size:11px;font-weight:600;cursor:pointer;" id="sf-reconnect-btn">↺ Reconnect SF</button>
@@ -3422,6 +3423,127 @@ function saveCanadaRecord(prov, name) {
   savePL();
   const msg = document.getElementById('saved-msg');
   if (msg) { msg.style.display='block'; setTimeout(function(){msg.style.display='none';},1500); }
+}
+
+
+// ── ADD PROPERTY ──────────────────────────────────────────────────────────────
+function openAddProperty() {
+  // Build state options
+  const stateOpts = Object.keys(SI).sort().map(function(s) {
+    return '<option value="'+s+'">'+s+'</option>';
+  }).join('');
+  const canadaOpts = Object.keys(CANADA_PROVINCES).sort().map(function(p) {
+    return '<option value="CA:'+p+'">'+p+', Canada</option>';
+  }).join('');
+
+  const dlg = document.createElement('div');
+  dlg.id = 'add-prop-dlg';
+  dlg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  dlg.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:24px;width:400px;box-shadow:0 8px 32px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto;">
+      <h3 style="margin:0 0 16px;font-size:15px;">+ Add New Property</h3>
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Property Name *</label>
+      <input id="ap-name" type="text" placeholder="e.g. Agua Caliente Casino" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box;">
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">City *</label>
+      <input id="ap-city" type="text" placeholder="e.g. Palm Springs" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box;">
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">State / Province *</label>
+      <select id="ap-state" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box;">
+        <option value="">— Select —</option>
+        <optgroup label="United States">${stateOpts}</optgroup>
+        <optgroup label="Canada">${canadaOpts}</optgroup>
+      </select>
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Type</label>
+      <select id="ap-type" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box;">
+        <option value="Tribal">Tribal</option>
+        <option value="Commercial">Commercial</option>
+        <option value="Racino">Racino</option>
+      </select>
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">CMS</label>
+      <select id="ap-cms" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box;">
+        <option value="">Unknown</option>
+        ${ALL_CMS.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('')}
+      </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Latitude *</label>
+          <input id="ap-lat" type="number" step="0.001" placeholder="e.g. 33.831" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Longitude *</label>
+          <input id="ap-lon" type="number" step="0.001" placeholder="e.g. -116.547" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="font-size:10px;color:#999;margin-bottom:12px;">💡 Tip: Right-click any location on Google Maps → "What's here?" to get lat/lon</div>
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Est. Slots</label>
+      <input id="ap-slots" type="number" placeholder="500" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:16px;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="document.getElementById('add-prop-dlg').remove()" style="padding:8px 16px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;">Cancel</button>
+        <button onclick="saveNewProperty()" style="padding:8px 16px;border:none;border-radius:6px;background:#0f6e56;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Add Property</button>
+      </div>
+    </div>`;
+  document.body.appendChild(dlg);
+  setTimeout(function(){ document.getElementById('ap-name').focus(); }, 100);
+}
+
+function saveNewProperty() {
+  const name   = document.getElementById('ap-name').value.trim();
+  const city   = document.getElementById('ap-city').value.trim();
+  const state  = document.getElementById('ap-state').value;
+  const type   = document.getElementById('ap-type').value;
+  const cms    = document.getElementById('ap-cms').value || 'Unknown';
+  const lat    = parseFloat(document.getElementById('ap-lat').value);
+  const lon    = parseFloat(document.getElementById('ap-lon').value);
+  const slots  = parseInt(document.getElementById('ap-slots').value) || 500;
+
+  if (!name)  { alert('Please enter a property name.'); return; }
+  if (!city)  { alert('Please enter a city.'); return; }
+  if (!state) { alert('Please select a state or province.'); return; }
+  if (isNaN(lat) || isNaN(lon)) { alert('Please enter valid latitude and longitude.'); return; }
+
+  const key = state + '||' + name;
+
+  // Add to CASINO_COORDS so it shows as a pin
+  CASINO_COORDS[name] = [lat, lon];
+
+  if (state.startsWith('CA:')) {
+    // Canadian province
+    const prov = state.replace('CA:', '');
+    if (!CANADA_DB[prov]) CANADA_DB[prov] = [];
+    CANADA_DB[prov].push({name, city, type, slots, lat, lon, cms});
+    // Update province count
+    if (CANADA_PROVINCES[prov]) CANADA_PROVINCES[prov].count++;
+  } else {
+    // US state — add to DB
+    if (!DB[state]) DB[state] = [];
+    DB[state].push({name, type, city, slots, tables:0, cms, fn500:null, ccSlug:null, state});
+    // Update SI count
+    if (SI[state]) {
+      if (type === 'Tribal') SI[state].t++;
+      else if (type === 'Commercial') SI[state].c++;
+      else SI[state].r++;
+    }
+  }
+
+  // Save a PL record so it persists
+  if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
+  PL[key].cms = cms;
+  PL[key].slots = slots;
+  PL[key].city = city;
+  PL[key].isCustom = true;
+  savePL();
+
+  document.getElementById('add-prop-dlg').remove();
+
+  // Refresh map
+  refreshStateMarkers();
+  if (curState === state || curState === 'CA:'+state.replace('CA:','')) {
+    clearCasinoMarkers();
+    if (state.startsWith('CA:')) buildCanadaCasinoMarkers(state.replace('CA:',''));
+    else buildCasinoMarkers(state);
+    renderPanel();
+  }
+
+  alert('✓ ' + name + ' added to ' + (state.startsWith('CA:') ? state.replace('CA:','') : state) + '!');
 }
 
 // ── HASH UTILS ────────────────────────────────────────────────────────────────
