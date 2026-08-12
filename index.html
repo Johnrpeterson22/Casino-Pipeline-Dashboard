@@ -3955,6 +3955,15 @@ document.getElementById('d-x').addEventListener('click',function(){
   document.getElementById('list').style.display='';
   document.querySelectorAll('.crow').forEach(function(r){r.classList.remove('sel');});
   curIdx=null;
+  // Zoom back out to show the whole state
+  if(curState && !curState.startsWith('CA:')) {
+    const bounds = STATE_BOUNDS[curState];
+    if(bounds) map.fitBounds(bounds, {padding:[30,30], maxZoom:10, animate:true, duration:0.7});
+  } else if(curState && curState.startsWith('CA:')) {
+    const prov = curState.replace('CA:','');
+    const info = CANADA_PROVINCES[prov];
+    if(info) map.fitBounds(info.bounds, {padding:[30,30], maxZoom:8, animate:true, duration:0.7});
+  }
 });
 document.getElementById('btn-close').addEventListener('click',closePanel);
 
