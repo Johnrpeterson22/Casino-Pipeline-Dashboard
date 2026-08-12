@@ -3820,7 +3820,7 @@ function renderDetail(p){
     '<div><div class="dfl" style="margin-bottom:2px;">CMS</div><select class="fi" id="fi-cms" style="margin-bottom:0;font-size:11px;">'+
       ALL_CMS.map(function(c){return '<option value="'+c+'"'+(c===p.cms?' selected':'')+'>'+c+'</option>';}).join('')+
     '</select></div>'+
-    '<div><div class="dfl" style="margin-bottom:2px;">Version</div><input class="fi" id="fi-version" type="text" placeholder="e.g. SYNKROS 6.2" style="margin-bottom:0;font-size:11px;" value="'+(rec.version||'')+'"></div>'+
+    '<div><div class="dfl" style="margin-bottom:2px;">Version</div><input class="fi" id="fi-version" type="text" placeholder="e.g. 6.2" style="margin-bottom:0;font-size:11px;" value="'+(rec.version||'')+'"></div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Est. Slots</div><input class="fi" id="fi-slots" type="number" min="0" style="margin-bottom:0;" value="'+p.slots+'"></div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Tables</div><input class="fi" id="fi-tables" type="number" min="0" style="margin-bottom:0;" value="'+p.tables+'"></div>'+
     '</div>'+
