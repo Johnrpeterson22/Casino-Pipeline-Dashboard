@@ -756,6 +756,7 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
   <button id="btn-reset">↺ Reset</button>
   <button id="btn-restore" title="Show hidden properties again" style="height:30px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;">👁 Restore hidden</button>
   <button id="sf-connect-btn" onclick="sfConnect()" style="height:30px;padding:0 10px;border-radius:6px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.55);font-size:11px;font-weight:600;cursor:pointer;">☁ Connect Salesforce</button>
+  <button onclick="sfReconnect()" style="height:30px;padding:0 10px;border-radius:6px;border:1.5px solid rgba(255,100,100,.5);background:transparent;color:rgba(255,150,150,.8);font-size:11px;font-weight:600;cursor:pointer;" id="sf-reconnect-btn">↺ Reconnect SF</button>
   <span id="sf-ind" style="font-size:11px;color:rgba(255,255,255,.5);margin-right:4px;"></span>
   <span id="sync-ind" style="font-size:11px;color:#999;margin-left:4px;">⟳ Loading…</span>
   <span style="color:rgba(255,255,255,.3);font-size:14px;">|</span>
@@ -2800,7 +2801,11 @@ function sfIndicator(state) {
   if (!el) return;
   if (state === 'connected')  { el.textContent = '✓ SF Synced';    el.style.color = '#16a34a'; }
   else if (state === 'syncing')  { el.textContent = '⟳ SF Syncing…'; el.style.color = '#f59e0b'; }
-  else if (state === 'error')    { el.textContent = '⚠ SF Error';    el.style.color = '#ef4444'; }
+  else if (state === 'error')    {
+    el.textContent = '⚠ SF Error';    el.style.color = '#ef4444';
+    const rb = document.getElementById('sf-reconnect-btn');
+    if (rb) rb.style.display = 'inline-block';
+  }
   else                           { el.textContent = '';               el.style.color = 'rgba(255,255,255,.5)'; }
 }
 
@@ -2860,10 +2865,21 @@ function sfSaveAndSync() {
 }
 
 function sfConnect() {
-  // If already have token, just re-sync
-  if (sfToken) { sfFetchData(); return; }
-  // Direct redirect to SF OAuth using exact working URL
-  window.location.href = 'https://markertrax.my.salesforce.com/services/oauth2/authorize?response_type=token&client_id=3MVG9cHH2bfKACZZqp5GhYpKigmk0Z9TvFSwK0TCskkVRxrmHD0YzeIv5jk_bFILqF4SG_XMzbv765CqQQa2s&redirect_uri=https%3A%2F%2Fjohnrpeterson22.github.io%2FCasino-Pipeline-Dashboard%2F&scope=full';
+  const SF_OAUTH = 'https://markertrax.my.salesforce.com/services/oauth2/authorize?response_type=token&client_id=3MVG9cHH2bfKACZZqp5GhYpKigmk0Z9TvFSwK0TCskkVRxrmHD0YzeIv5jk_bFILqF4SG_XMzbv765CqQQa2s&redirect_uri=https%3A%2F%2Fjohnrpeterson22.github.io%2FCasino-Pipeline-Dashboard%2F&scope=full';
+  if (sfToken) {
+    // Try re-sync first, if error offer to reconnect
+    sfIndicator('syncing');
+    sfFetchData();
+    return;
+  }
+  window.location.href = SF_OAUTH;
+}
+
+function sfReconnect() {
+  // Clear stored token and force fresh login
+  sfToken = null;
+  try { localStorage.removeItem('sf_token_v2'); localStorage.removeItem('sf_iurl_v2'); } catch(e) {}
+  window.location.href = 'https://markertrax.my.salesforce.com/services/oauth2/authorize?response_type=token&client_id=3MVG9cHH2bfKACZZqp5GhYpKigmk0Z9TvFSwK0TCskkVRxrmHD0YzeIv5jk_bFILqF4SG_XMzbv765CqQQa2s&redirect_uri=https%3A%2F%2Fjohnrpeterson22.github.io%2FCasino-Pipeline-Dashboard%2F&scope=full&prompt=login';
 }
 
 function sfDoSync(user, pass) {
