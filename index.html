@@ -787,13 +787,7 @@ textarea.fi{resize:vertical;min-height:65px;line-height:1.5;}
     </div>
     <div id="col-hdr"><div>Property</div><div>Type</div><div>Pipeline</div></div>
     <div id="list"><div class="hint">Click any state pin on the map<br>or select from the dropdown above</div></div>
-    <datalist id="version-options">
-  <option value="R6">
-  <option value="R5">
-  <option value="4.2.3">
-  <option value="3.24">
-  <option value="Other — type version here">
-</datalist>
+    
 <div id="det">
       <div id="dh">
         <div><h4 id="d-name"></h4><div class="ds" id="d-sub"></div></div>
@@ -3364,7 +3358,14 @@ function openCanadaDetail(c, prov) {
     '<div class="sec-lbl">CMS</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
     '<div><div class="dfl" style="margin-bottom:2px;">CMS</div><input class="fi" id="fi-cms" type="text" placeholder="e.g. Konami" style="margin-bottom:0;font-size:11px;" value="'+(rec.cms||'')+'"></div>'+
-    '<div><div class="dfl" style="margin-bottom:2px;">Version</div><input class="fi" id="fi-version" type="text" placeholder="e.g. SYNKROS 6.2" style="margin-bottom:0;font-size:11px;" value="'+(rec.version||'')+'"></div>'+
+    '<div><div class="dfl" style="margin-bottom:2px;">Version</div>'+
+    '<select class="fi" id="fi-version-sel" style="margin-bottom:4px;" onchange="handleVersionSelect(this)">'+
+      '<option value="">Select Version</option>'+
+      ['R6','R5','4.6.4','4.2.3','3.24'].map(function(v){return '<option value="'+v+'"'+((rec.version===v)?' selected':'')+'>'+v+'</option>';}).join('')+
+      '<option value="__other__" '+(['R6','R5','4.6.4','4.2.3','3.24'].indexOf(rec.version)<0&&rec.version?'selected':'')+' style="color:#0f6e56;font-weight:700;background:#d4f0e5;">✏ Other — Type your version here</option>'+
+    '</select>'+
+    '<input class="fi" id="fi-version" type="text" placeholder="Type version here..." style="display:'+(['R6','R5','4.6.4','4.2.3','3.24'].indexOf(rec.version)<0&&rec.version?'block':'none')+';border:2px solid #0f6e56;background:#d4f0e5;" value="'+(['R6','R5','4.6.4','4.2.3','3.24'].indexOf(rec.version)<0?rec.version:'')+'" onfocus="this.select()">'+
+    '</div>'+
     '</div>'+
     '<div class="sec-lbl">Next Step</div>'+
     '<input class="fi" id="fi-nextstep" type="text" placeholder="Next step..." value="'+(rec.nextStep||'')+'">'+
@@ -3828,8 +3829,8 @@ function renderDetail(p){
       ALL_CMS.map(function(c){return '<option value="'+c+'"'+(c===p.cms?' selected':'')+'>'+c+'</option>';}).join('')+
     '</select></div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Version</div>'+
-    '<input class="fi" id="fi-version" list="version-options" type="text" placeholder="Select or type version..." style="margin-bottom:0;font-size:11px;" value="'+(rec.version||'')+'">'+
-    '<div style="font-size:9px;color:#f59e0b;margin-top:2px;">✏ Type to enter custom version</div>'+
+    '<input class="fi" id="fi-version" list="version-options" type="text" placeholder="✏ Type version here" style="margin-bottom:0;font-size:12px;font-weight:600;background:#fffbeb;border:2px solid #f59e0b;color:#92400e;" value="'+(rec.version||'')+'" onclick="this.select()" onfocus="this.select()">'+
+
     '</div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Est. Slots</div><input class="fi" id="fi-slots" type="number" min="0" style="margin-bottom:0;" value="'+p.slots+'"></div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Tables</div><input class="fi" id="fi-tables" type="number" min="0" style="margin-bottom:0;" value="'+p.tables+'"></div>'+
@@ -3861,6 +3862,18 @@ function deleteProperty(state,name){
   refreshStateMarkers();
 }
 
+function handleVersionSelect(sel) {
+  const input = document.getElementById('fi-version');
+  if (sel.value === '__other__') {
+    input.style.display = 'block';
+    input.focus();
+    input.select();
+  } else {
+    input.style.display = 'none';
+    input.value = '';
+  }
+}
+
 function doSetStage(state,name,stage){
   const key=state+'||'+name;
   setStage(key,stage);
@@ -3890,7 +3903,9 @@ function saveRecord(state,name){
   PL[key].contact=document.getElementById('fi-contact').value;
   PL[key].type=document.getElementById('fi-type').value;
   PL[key].cms=document.getElementById('fi-cms').value;
-  PL[key].version=document.getElementById('fi-version')?document.getElementById('fi-version').value:'';
+  const vSel = document.getElementById('fi-version-sel');
+  const vInput = document.getElementById('fi-version');
+  PL[key].version = (vSel && vSel.value && vSel.value !== '__other__') ? vSel.value : (vInput ? vInput.value : '');
   PL[key].slots=Math.max(0,parseInt(document.getElementById('fi-slots').value)||0);
   PL[key].tables=Math.max(0,parseInt(document.getElementById('fi-tables').value)||0);
   savePL();
