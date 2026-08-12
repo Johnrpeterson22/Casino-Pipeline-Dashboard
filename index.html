@@ -2861,19 +2861,17 @@ function sfConnect() {
 function sfSync() {
   if (!sfToken) { sfConnect(); return; }
   sfIndicator('syncing');
-  // Query Accounts (casino properties) with key fields
   const query = encodeURIComponent(
-    "SELECT Id, Name, BillingState, BillingCity, Type, " +
+    "SELECT Id, Name, BillingState, BillingCity, Type, NumberOfEmployees, " +
     "(SELECT Id, Name, StageName, CloseDate FROM Opportunities ORDER BY LastModifiedDate DESC LIMIT 1), " +
     "(SELECT Id, FirstName, LastName, Title, Phone, Email FROM Contacts LIMIT 1) " +
-    "FROM Account WHERE RecordType.Name != null OR Type != null LIMIT 1000"
+    "FROM Account LIMIT 2000"
   );
   fetch(sfInstanceUrl + '/services/data/v59.0/query?q=' + query, {
     headers: { 'Authorization': 'Bearer ' + sfToken, 'Content-Type': 'application/json' }
   })
   .then(function(r) {
     if (r.status === 401) {
-      // Token expired
       try { localStorage.removeItem(SF_TOKEN_KEY); } catch(e) {}
       sfToken = null; sfIndicator('error');
       return null;
@@ -2883,43 +2881,107 @@ function sfSync() {
   .then(function(data) {
     if (!data || !data.records) return;
     let matched = 0;
+    // Track which DB casino keys have been matched to a SF record
+    // so we can mark unmatched near-duplicates as hidden
+    const sfMatchedKeys = {};
+
     data.records.forEach(function(acc) {
       const normName = sfNorm(acc.Name);
-      const state = acc.BillingState || '';
-      // Find matching casino in our DB
-      let matchedCasino = null;
+      const sfState = acc.BillingState || '';
+
+      // Find the best matching casino in our DB
+      // Prefer: exact name + state match, then exact name any state, then close name same state
+      let bestMatch = null;
+      let bestScore = 0;
+
       Object.keys(DB).forEach(function(dbState) {
         (DB[dbState] || []).forEach(function(casino) {
-          if (sfNorm(casino.name) === normName) {
-            matchedCasino = casino;
+          const cn = sfNorm(casino.name);
+          let score = 0;
+          if (cn === normName) {
+            score = sfState && dbState === sfState ? 100 : 80;
+          } else {
+            // Check if one contains the other (handles "Wynn" vs "Wynn Las Vegas")
+            if (cn.includes(normName) || normName.includes(cn)) {
+              score = sfState && dbState === sfState ? 60 : 40;
+            }
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = casino;
           }
         });
       });
-      if (matchedCasino) {
-        const key = matchedCasino.state + '||' + matchedCasino.name;
+
+      if (bestMatch && bestScore >= 60) {
+        const key = bestMatch.state + '||' + bestMatch.name;
+        sfMatchedKeys[key] = true;
+
+        // SF is authoritative - update the casino object directly in DB
+        // Override name, city, state with SF values
+        if (acc.BillingCity) bestMatch.city = acc.BillingCity;
+        if (acc.BillingState) bestMatch.sfState = acc.BillingState;
+        bestMatch.sfId = acc.Id;
+        bestMatch.sfName = acc.Name; // store SF name for display
+        bestMatch.isSF = true;
+
+        // Update PL record with SF pipeline/contact data
         if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
-        // SF wins on conflicts - apply SF data
+        PL[key].sfId = acc.Id;
+        PL[key].sfName = acc.Name;
+
+        // SF opportunity stage wins
         const opp = acc.Opportunities && acc.Opportunities.records && acc.Opportunities.records[0];
         if (opp) {
           PL[key].stage = sfStageToIndex(opp.StageName);
           PL[key].sfStage = opp.StageName;
           PL[key].sfOppId = opp.Id;
         }
+
+        // SF contact wins
         const contact = acc.Contacts && acc.Contacts.records && acc.Contacts.records[0];
         if (contact) {
-          PL[key].contact = (contact.FirstName || '') + ' ' + (contact.LastName || '') + (contact.Title ? ' — ' + contact.Title : '');
+          const name = ((contact.FirstName || '') + ' ' + (contact.LastName || '')).trim();
+          const title = contact.Title ? ' — ' + contact.Title : '';
+          const phone = contact.Phone ? ' | ' + contact.Phone : '';
+          PL[key].contact = name + title + phone;
+          PL[key].sfContactEmail = contact.Email || '';
         }
-        PL[key].sfId = acc.Id;
-        PL[key].sfName = acc.Name;
         matched++;
       }
     });
-    // Push merged data back to JSONBin
+
+    // Now check for near-duplicate map entries that represent the same property
+    // as a matched SF record - hide them so only one shows
+    Object.keys(DB).forEach(function(dbState) {
+      (DB[dbState] || []).forEach(function(casino) {
+        const key = casino.state + '||' + casino.name;
+        if (sfMatchedKeys[key]) return; // this IS the SF match, keep it
+        if (casino.isSF) return; // already marked
+
+        // Check if this casino's name closely matches any SF-matched casino
+        Object.keys(sfMatchedKeys).forEach(function(sfKey) {
+          const sfCasinoName = sfKey.split('||')[1];
+          const cn = sfNorm(casino.name);
+          const sn = sfNorm(sfCasinoName);
+          // If names are very similar and same state - this is a duplicate
+          if (cn === sn || cn.includes(sn) || sn.includes(cn)) {
+            if (casino.state === sfKey.split('||')[0]) {
+              // Mark as duplicate - hide it
+              if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
+              PL[key].sfDuplicate = true;
+              PL[key].deleted = true; // hide from map and list
+            }
+          }
+        });
+      });
+    });
+
     savePL();
     sfIndicator('connected');
     refreshStateMarkers();
-    if (curState) { renderPanel(); }
-    console.log('SF sync complete: ' + matched + ' properties matched from ' + data.records.length + ' SF accounts');
+    if (curState) { clearCasinoMarkers(); buildCasinoMarkers(curState); renderPanel(); }
+    console.log('SF sync: ' + matched + '/' + data.records.length + ' SF accounts matched to map properties');
   })
   .catch(function(e) {
     console.error('SF sync error:', e);
