@@ -1,5 +1,26 @@
 // Check if we have a stored token on load
 function sfInit() {
+  // First check if SF just redirected back to us with a token in the URL hash
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    const p = new URLSearchParams(window.location.hash.substring(1));
+    const token = p.get('access_token');
+    const iurl = p.get('instance_url');
+    if (token) {
+      sfToken = token;
+      sfInstanceUrl = iurl || sfInstanceUrl;
+      try {
+        localStorage.setItem('sf_token_v2', token);
+        localStorage.setItem('sf_iurl_v2', sfInstanceUrl);
+      } catch(e) {}
+      // Clean the URL hash so it doesn't show
+      window.history.replaceState(null, '', window.location.pathname);
+      sfIndicator('connected');
+      // Auto-sync since we just got the token
+      setTimeout(sfFetchData, 500);
+      return;
+    }
+  }
+  // Otherwise restore from stored token
   try {
     const token = localStorage.getItem('sf_token_v2');
     const iurl = localStorage.getItem('sf_iurl_v2');
@@ -2859,40 +2880,23 @@ function sfSaveAndSync() {
 }
 
 function sfConnect() {
-  // Use popup OAuth - opens SF login in small window, captures token automatically
+  // Check for stored token first
+  try {
+    const token = localStorage.getItem('sf_token_v2');
+    if (token && sfToken) {
+      // Already connected - just re-sync
+      sfFetchData();
+      return;
+    }
+  } catch(e) {}
+  // Redirect to SF OAuth - it will redirect back to this page with token in hash
   const params = new URLSearchParams({
     response_type: 'token',
     client_id: SF_CLIENT_ID,
     redirect_uri: SF_CALLBACK,
     scope: 'full',
-    prompt: 'login',
   });
-  const authUrl = 'https://markertrax.my.salesforce.com/services/oauth2/authorize' + '?' + params.toString();
-  const popup = window.open(authUrl, 'sf_oauth', 'width=500,height=650,left=300,top=50');
-  if (!popup) { alert('Please allow popups for this site to connect Salesforce.'); return; }
-  sfIndicator('syncing');
-  // Poll popup URL every 500ms - when it redirects back to our domain, grab the token
-  const poll = setInterval(function() {
-    try {
-      if (!popup || popup.closed) { clearInterval(poll); sfIndicator('error'); return; }
-      const hash = popup.location.hash;
-      if (hash && hash.includes('access_token')) {
-        clearInterval(poll);
-        popup.close();
-        const p = new URLSearchParams(hash.substring(1));
-        const token = p.get('access_token');
-        const iurl = p.get('instance_url') || 'https://markertrax.my.salesforce.com';
-        if (token) {
-          sfToken = token;
-          sfInstanceUrl = iurl;
-          try { localStorage.setItem('sf_token_v2', token); localStorage.setItem('sf_iurl_v2', iurl); } catch(e) {}
-          sfFetchData();
-        }
-      }
-    } catch(e) {
-      // Still on SF domain - waiting for redirect back
-    }
-  }, 500);
+  window.location.href = SF_AUTH_URL + '?' + params.toString();
 }
 
 function sfDoSync(user, pass) {
