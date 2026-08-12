@@ -2850,23 +2850,10 @@ function sfSaveAndSync() {
 }
 
 function sfConnect() {
-  // Check for stored token first
-  try {
-    const token = localStorage.getItem('sf_token_v2');
-    if (token && sfToken) {
-      // Already connected - just re-sync
-      sfFetchData();
-      return;
-    }
-  } catch(e) {}
-  // Redirect to SF OAuth - it will redirect back to this page with token in hash
-  const params = new URLSearchParams({
-    response_type: 'token',
-    client_id: SF_CLIENT_ID,
-    redirect_uri: SF_CALLBACK,
-    scope: 'full',
-  });
-  window.location.href = SF_AUTH_URL + '?' + params.toString();
+  // If already have token, just re-sync
+  if (sfToken) { sfFetchData(); return; }
+  // Direct redirect to SF OAuth using exact working URL
+  window.location.href = 'https://markertrax.my.salesforce.com/services/oauth2/authorize?response_type=token&client_id=3MVG9cHH2bfKACZZqp5GhYpKigmk0Z9TvFSwK0TCskkVRxrmHD0YzeIv5jk_bFILqF4SG_XMzbv765CqQQa2s&redirect_uri=https%3A%2F%2Fjohnrpeterson22.github.io%2FCasino-Pipeline-Dashboard%2F&scope=full';
 }
 
 function sfDoSync(user, pass) {
@@ -2965,9 +2952,18 @@ function sfFetchData() {
     });
     savePL();
     sfIndicator('connected');
+    // Full map refresh after SF data loaded
     refreshStateMarkers();
-    if (curState) { clearCasinoMarkers(); buildCasinoMarkers(curState); renderPanel(); }
-    console.log('SF sync: '+matched+'/'+data.records.length+' accounts matched');
+    if (curState) {
+      clearCasinoMarkers();
+      buildCasinoMarkers(curState);
+      renderPanel();
+    }
+    console.log('SF sync complete: ' + matched + '/' + data.records.length + ' SF accounts matched to map');
+    // Show summary to user
+    try { setSyncIndicator('synced'); } catch(e) {}
+    const sfBtn = document.getElementById('sf-connect-btn');
+    if (sfBtn) { sfBtn.textContent = '✓ SF Synced (' + matched + ')'; sfBtn.style.color = '#16a34a'; }
   })
   .catch(function(e) { console.error('SF fetch error:',e); sfIndicator('error'); });
 }
@@ -3124,7 +3120,7 @@ function getStateColor(state,view){
   } else {
     const reg=REG_STATUS[state];
     if(!reg)return null;
-    return {yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.Koin]||null;
+    return {yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.cashless]||null;
   }
 }
 
@@ -3153,7 +3149,7 @@ function buildStateOverlay(view){
       } else {
         const reg=REG_STATUS[name];
         if(reg){
-          const clbl={yes:'✅ Koin approved',partial:'⚠ Some properties',pending:'🔵 Pending',no:'❌ Not approved'}[reg.Koin]||reg.Koin;
+          const clbl={yes:'✅ Koin approved',partial:'⚠ Some properties',pending:'🔵 Pending',no:'❌ Not approved'}[reg.cashless]||reg.cashless;
           tip+='<br>'+clbl;
         }
       }
@@ -3351,10 +3347,10 @@ function renderDetail(p){
   }).join('');
   const reg=REG_STATUS[p.state]||{};
   const mt=MT_STATUS[p.state]||{};
-  const cashColor={yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.Koin]||'#aaa';
+  const cashColor={yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.cashless]||'#aaa';
   const creditColor={yes:'#16a34a',partial:'#f59e0b',pending:'#3b82f6',no:'#ef4444'}[reg.credit]||'#aaa';
   const mtColor={approved:'#16a34a',restricted:'#f59e0b',prohibited:'#ef4444'}[mt.status]||'#aaa';
-  const cashLabel={yes:'Koin Approved',partial:'Partial / Some Properties',pending:'Pending Approval',no:'Not Approved'}[reg.Koin]||'Unknown';
+  const cashLabel={yes:'Koin Approved',partial:'Partial / Some Properties',pending:'Pending Approval',no:'Not Approved'}[reg.cashless]||'Unknown';
   const creditLabel={yes:'Credit Approved',partial:'Partial',pending:'Pending',no:'Not Approved'}[reg.credit]||'Unknown';
   const mtLabel={approved:'Markers Approved Statewide',restricted:'Varies by Property',prohibited:'Prohibited — RCW 9.46'}[mt.status]||'Unknown';
   const hist=(rec.history||[]).slice(-5).reverse().map(function(h){
@@ -3370,7 +3366,7 @@ function renderDetail(p){
     '</div>'+
     '<div class="dfield" style="margin-bottom:8px;background:#fff3f3;border:1px solid '+mtColor+'40;"><div class="dfl">Moolah Play Status</div><div class="dfv" style="color:'+mtColor+'">'+mtLabel+'</div></div>'+
     '<div class="sec-lbl">Sales Pipeline Stage</div>'+
-    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:10px;">'+stageBtns+'</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:10px;">'+stageBtns+'</div>'+
     '<div class="sec-lbl">Property Details</div>'+
     '<div class="dfields">'+
     '<div><div class="dfl" style="margin-bottom:2px;">Type</div><select class="fi" id="fi-type" style="margin-bottom:0;">'+
