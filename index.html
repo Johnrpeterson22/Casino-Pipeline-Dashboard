@@ -1,4 +1,15 @@
-<!DOCTYPE html>
+// Check if we have a stored token on load
+function sfInit() {
+  try {
+    const token = localStorage.getItem('sf_token_v2');
+    const iurl = localStorage.getItem('sf_iurl_v2');
+    if (token) {
+      sfToken = token;
+      sfInstanceUrl = iurl || sfInstanceUrl;
+      sfIndicator('connected');
+    }
+  } catch(e) {}
+}<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -2848,15 +2859,40 @@ function sfSaveAndSync() {
 }
 
 function sfConnect() {
-  // Check if we have stored creds
-  try {
-    const stored = JSON.parse(localStorage.getItem(SF_CREDS_KEY)||'{}');
-    if (stored.user && stored.pass) {
-      sfDoSync(stored.user, stored.pass);
-      return;
+  // Use popup OAuth - opens SF login in small window, captures token automatically
+  const params = new URLSearchParams({
+    response_type: 'token',
+    client_id: SF_CLIENT_ID,
+    redirect_uri: SF_CALLBACK,
+    scope: 'full',
+    prompt: 'login',
+  });
+  const authUrl = 'https://markertrax.my.salesforce.com/services/oauth2/authorize' + '?' + params.toString();
+  const popup = window.open(authUrl, 'sf_oauth', 'width=500,height=650,left=300,top=50');
+  if (!popup) { alert('Please allow popups for this site to connect Salesforce.'); return; }
+  sfIndicator('syncing');
+  // Poll popup URL every 500ms - when it redirects back to our domain, grab the token
+  const poll = setInterval(function() {
+    try {
+      if (!popup || popup.closed) { clearInterval(poll); sfIndicator('error'); return; }
+      const hash = popup.location.hash;
+      if (hash && hash.includes('access_token')) {
+        clearInterval(poll);
+        popup.close();
+        const p = new URLSearchParams(hash.substring(1));
+        const token = p.get('access_token');
+        const iurl = p.get('instance_url') || 'https://markertrax.my.salesforce.com';
+        if (token) {
+          sfToken = token;
+          sfInstanceUrl = iurl;
+          try { localStorage.setItem('sf_token_v2', token); localStorage.setItem('sf_iurl_v2', iurl); } catch(e) {}
+          sfFetchData();
+        }
+      }
+    } catch(e) {
+      // Still on SF domain - waiting for redirect back
     }
-  } catch(e) {}
-  sfShowLogin();
+  }, 500);
 }
 
 function sfDoSync(user, pass) {
