@@ -3579,12 +3579,17 @@ function saveNewProperty() {
     }
   }
 
-  // Save a PL record so it persists
+  // Save full casino data in PL so it persists across sessions
   if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
   PL[key].cms = cms;
   PL[key].slots = slots;
   PL[key].city = city;
+  PL[key].type = type;
+  PL[key].state = state;
+  PL[key].lat = lat;
+  PL[key].lon = lon;
   PL[key].isCustom = true;
+  PL[key].customName = name;
   PL[key].address = document.getElementById('ap-address') ? document.getElementById('ap-address').value.trim() : '';
   savePL();
 
@@ -3600,6 +3605,58 @@ function saveNewProperty() {
   }
 
   alert('✓ ' + name + ' added to ' + (state.startsWith('CA:') ? state.replace('CA:','') : state) + '!');
+}
+
+
+// Rebuild custom properties from PL records on page load
+function rebuildCustomProperties() {
+  Object.keys(PL).forEach(function(key) {
+    const rec = PL[key];
+    if (!rec || !rec.isCustom || !rec.customName) return;
+    const parts = key.split('||');
+    if (parts.length < 2) return;
+    const state = parts[0];
+    const name = parts[1];
+    // Add coordinates
+    if (rec.lat && rec.lon) {
+      CASINO_COORDS[name] = [rec.lat, rec.lon];
+    }
+    // Add to DB if not already there
+    if (!state.startsWith('CA:')) {
+      if (!DB[state]) DB[state] = [];
+      const exists = DB[state].find(function(p){ return p.name === name; });
+      if (!exists) {
+        DB[state].push({
+          name: name,
+          type: rec.type || 'Commercial',
+          city: rec.city || state,
+          slots: rec.slots || 500,
+          tables: rec.tables || 0,
+          cms: rec.cms || 'Unknown',
+          fn500: null, ccSlug: null, state: state
+        });
+        // Update SI count
+        if (SI[state]) {
+          if ((rec.type||'Commercial') === 'Tribal') SI[state].t++;
+          else if ((rec.type||'Commercial') === 'Commercial') SI[state].c++;
+          else SI[state].r++;
+        }
+      }
+    } else {
+      const prov = state.replace('CA:','');
+      if (!CANADA_DB[prov]) CANADA_DB[prov] = [];
+      const exists = CANADA_DB[prov].find(function(p){ return p.name === name; });
+      if (!exists && rec.lat && rec.lon) {
+        CANADA_DB[prov].push({
+          name: name, city: rec.city || prov,
+          type: rec.type || 'Commercial',
+          slots: rec.slots || 500,
+          lat: rec.lat, lon: rec.lon, cms: rec.cms || 'Unknown'
+        });
+        if (CANADA_PROVINCES[prov]) CANADA_PROVINCES[prov].count++;
+      }
+    }
+  });
 }
 
 // ── HASH UTILS ────────────────────────────────────────────────────────────────
@@ -3641,6 +3698,7 @@ function fetchCloudPL(silent){
       savePLLocal();
       cloudReady=true;
       setSyncIndicator('synced');
+      rebuildCustomProperties();
       if(curState)renderPanel();
       refreshStateMarkers();
       if(casinoMarkers[curState])buildCasinoMarkers(curState);
