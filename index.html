@@ -3388,6 +3388,11 @@ function openCanadaDetail(c, prov) {
     '</div>'+
     '<div class="sec-lbl">Next Step</div>'+
     '<input class="fi" id="fi-nextstep" type="text" placeholder="Next step..." value="'+(rec.nextStep||'')+'">'+
+    '<div class="sec-lbl">Address</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:8px;">'+
+    '<input class="fi" id="fi-address" type="text" placeholder="Property address" style="flex:1;margin-bottom:0;" value="'+(rec.address||'')+'">'+
+    '<button onclick="geocodeAndUpdate()" style="padding:0 10px;height:36px;background:#0f6e56;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">Update Pin</button>'+
+    '</div>'+
     '<div class="sec-lbl">Contact</div>'+
     '<input class="fi" id="fi-contact" type="text" placeholder="Contact name / title" value="'+(rec.contact||'')+'">'+
     '<div class="sec-lbl">Notes</div>'+
@@ -3463,17 +3468,14 @@ function openAddProperty() {
         <option value="">Unknown</option>
         ${ALL_CMS.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('')}
       </select>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-        <div>
-          <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Latitude *</label>
-          <input id="ap-lat" type="number" step="0.001" placeholder="e.g. 33.831" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Longitude *</label>
-          <input id="ap-lon" type="number" step="0.001" placeholder="e.g. -116.547" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
-        </div>
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Address *</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <input id="ap-address" type="text" placeholder="e.g. 32-250 Bob Hope Dr, Rancho Mirage, CA" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+        <button onclick="geocodeAddress()" style="padding:8px 12px;background:#0f6e56;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Find</button>
       </div>
-      <div style="font-size:10px;color:#999;margin-bottom:12px;">💡 Tip: Right-click any location on Google Maps → "What's here?" to get lat/lon</div>
+      <div id="ap-geo-status" style="font-size:11px;color:#999;margin-bottom:8px;"></div>
+      <input id="ap-lat" type="hidden">
+      <input id="ap-lon" type="hidden">
       <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Est. Slots</label>
       <input id="ap-slots" type="number" placeholder="500" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:16px;box-sizing:border-box;">
       <div style="display:flex;gap:8px;justify-content:flex-end;">
@@ -3483,6 +3485,61 @@ function openAddProperty() {
     </div>`;
   document.body.appendChild(dlg);
   setTimeout(function(){ document.getElementById('ap-name').focus(); }, 100);
+}
+
+function geocodeAndUpdate() {
+  const addr = document.getElementById('fi-address').value.trim();
+  if (!addr) { alert('Enter an address first.'); return; }
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr) + '&limit=1', {
+    headers: {'Accept-Language': 'en'}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data || !data.length) { alert('Address not found.'); return; }
+    const p = curList[curIdx];
+    if (!p) return;
+    const lat = parseFloat(data[0].lat);
+    const lon = parseFloat(data[0].lon);
+    CASINO_COORDS[p.name] = [lat, lon];
+    const key = p.state+'||'+p.name;
+    if (!PL[key]) PL[key] = {stage:0,history:[],notes:'',contact:''};
+    PL[key].address = addr;
+    PL[key].lat = lat;
+    PL[key].lon = lon;
+    savePL();
+    // Rebuild casino markers to update pin location
+    if(curState){clearCasinoMarkers();buildCasinoMarkers(curState);}
+    alert('✓ Pin location updated to: ' + data[0].display_name.split(',').slice(0,3).join(','));
+  })
+  .catch(function(e){ alert('Lookup failed.'); });
+}
+
+function geocodeAddress() {
+  const addr = document.getElementById('ap-address').value.trim();
+  if (!addr) { alert('Please enter an address first.'); return; }
+  const status = document.getElementById('ap-geo-status');
+  status.textContent = '⟳ Looking up address...';
+  status.style.color = '#f59e0b';
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr) + '&limit=1', {
+    headers: {'Accept-Language': 'en'}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data || !data.length) {
+      status.textContent = '✗ Address not found — try a more specific address or enter lat/lon manually';
+      status.style.color = '#ef4444';
+      return;
+    }
+    const result = data[0];
+    document.getElementById('ap-lat').value = parseFloat(result.lat).toFixed(4);
+    document.getElementById('ap-lon').value = parseFloat(result.lon).toFixed(4);
+    status.textContent = '✓ Found: ' + result.display_name.split(',').slice(0,3).join(',');
+    status.style.color = '#16a34a';
+  })
+  .catch(function(e) {
+    status.textContent = '✗ Lookup failed — enter lat/lon manually';
+    status.style.color = '#ef4444';
+  });
 }
 
 function saveNewProperty() {
@@ -3498,7 +3555,10 @@ function saveNewProperty() {
   if (!name)  { alert('Please enter a property name.'); return; }
   if (!city)  { alert('Please enter a city.'); return; }
   if (!state) { alert('Please select a state or province.'); return; }
-  if (isNaN(lat) || isNaN(lon)) { alert('Please enter valid latitude and longitude.'); return; }
+  if (isNaN(lat) || isNaN(lon)) { 
+    alert('Please enter an address and click Find to locate the property on the map.');
+    return; 
+  }
 
   const key = state + '||' + name;
 
@@ -3530,6 +3590,7 @@ function saveNewProperty() {
   PL[key].slots = slots;
   PL[key].city = city;
   PL[key].isCustom = true;
+  PL[key].address = document.getElementById('ap-address') ? document.getElementById('ap-address').value.trim() : '';
   savePL();
 
   document.getElementById('add-prop-dlg').remove();
