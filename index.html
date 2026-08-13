@@ -3388,11 +3388,6 @@ function openCanadaDetail(c, prov) {
     '</div>'+
     '<div class="sec-lbl">Next Step</div>'+
     '<input class="fi" id="fi-nextstep" type="text" placeholder="Next step..." value="'+(rec.nextStep||'')+'">'+
-    '<div class="sec-lbl">Address</div>'+
-    '<div style="display:flex;gap:6px;margin-bottom:8px;">'+
-    '<input class="fi" id="fi-address" type="text" placeholder="Property address" style="flex:1;margin-bottom:0;" value="'+(rec.address||'')+'">'+
-    '<button onclick="geocodeAndUpdate()" style="padding:0 10px;height:36px;background:#0f6e56;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">Update Pin</button>'+
-    '</div>'+
     '<div class="sec-lbl">Contact</div>'+
     '<input class="fi" id="fi-contact" type="text" placeholder="Contact name / title" value="'+(rec.contact||'')+'">'+
     '<div class="sec-lbl">Notes</div>'+
@@ -4094,8 +4089,15 @@ function renderDetail(p){
     '<input class="fi" id="fi-version" list="version-options" type="text" placeholder="✏ Type version here" style="margin-bottom:0;font-size:12px;font-weight:600;background:#fffbeb;border:2px solid #f59e0b;color:#92400e;" value="'+(rec.version||'')+'" onclick="this.select()" onfocus="this.select()">'+
 
     '</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
     '<div><div class="dfl" style="margin-bottom:2px;">Est. Slots</div><input class="fi" id="fi-slots" type="number" min="0" style="margin-bottom:0;" value="'+p.slots+'"></div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Tables</div><input class="fi" id="fi-tables" type="number" min="0" style="margin-bottom:0;" value="'+p.tables+'"></div>'+
+    '</div>'+
+    '<div class="sec-lbl">Address</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:8px;">'+
+    '<input class="fi" id="fi-address" type="text" placeholder="Property address" style="flex:1;margin-bottom:0;" value="'+(rec.address||'')+'">'+
+    '<button onclick="geocodeAndUpdate()" style="padding:0 10px;height:36px;background:#0f6e56;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">Update Pin</button>'+
     '</div>'+
     '<div class="sec-lbl">Contact</div>'+
     '<input class="fi" id="fi-contact" type="text" placeholder="Contact name / title" value="'+(rec.contact||'')+'">'+
