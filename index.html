@@ -3383,7 +3383,7 @@ function openCanadaDetail(c, prov) {
       ['R6','R5','4.6.4','4.2.3','3.24'].map(function(v){return '<option value="'+v+'"'+((rec.version===v)?' selected':'')+'>'+v+'</option>';}).join('')+
       '<option value="__other__" '+(['R6','R5','4.6.4','4.2.3','3.24'].indexOf(rec.version)<0&&rec.version?'selected':'')+' style="color:#0f6e56;font-weight:700;background:#d4f0e5;">✏ Other — Type your version here</option>'+
     '</select>'+
-    '<input class="fi" id="fi-version" type="text" placeholder="Type version here..." style="display:'+(['R6','R5','4.6.4','4.2.3','3.24'].indexOf(rec.version)<0&&rec.version?'block':'none')+';border:2px solid #0f6e56;background:#d4f0e5;" value="'+(['R6','R5','4.6.4','4.2.3','3.24'].indexOf(rec.version)<0?rec.version:'')+'" onfocus="this.select()">'+
+    '<input class="fi" id="fi-version" type="text" placeholder="Type version here..." style="display:none;border:2px solid #0f6e56;background:#d4f0e5;" value="" onfocus="this.select()">'+
     '</div>'+
     '</div>'+
     '<div class="sec-lbl">Next Step</div>'+
@@ -3471,6 +3471,17 @@ function openAddProperty() {
       <div id="ap-geo-status" style="font-size:11px;color:#999;margin-bottom:8px;"></div>
       <input id="ap-lat" type="hidden">
       <input id="ap-lon" type="hidden">
+      <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Version</label>
+      <select id="ap-version" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:6px;box-sizing:border-box;" onchange="var o=document.getElementById('ap-version-other');o.style.display=this.value==='__other__'?'block':'none';">
+        <option value="">Select Version</option>
+        <option value="R6">R6</option>
+        <option value="R5">R5</option>
+        <option value="4.6.4">4.6.4</option>
+        <option value="4.2.3">4.2.3</option>
+        <option value="3.24">3.24</option>
+        <option value="__other__" style="color:#0f6e56;font-weight:700;">✏ Other — Type your version here</option>
+      </select>
+      <input id="ap-version-other" type="text" placeholder="Type version here..." style="width:100%;padding:8px;border:2px solid #0f6e56;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box;display:none;background:#d4f0e5;" oninput="">
       <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px;">Est. Slots</label>
       <input id="ap-slots" type="number" placeholder="500" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:16px;box-sizing:border-box;">
       <div style="display:flex;gap:8px;justify-content:flex-end;">
@@ -3546,6 +3557,10 @@ function saveNewProperty() {
   const lat    = parseFloat(document.getElementById('ap-lat').value);
   const lon    = parseFloat(document.getElementById('ap-lon').value);
   const slots  = parseInt(document.getElementById('ap-slots').value) || 500;
+  const vSel = document.getElementById('ap-version');
+  const version = vSel && vSel.value === '__other__' 
+    ? (document.getElementById('ap-version-other').value || '')
+    : (vSel ? vSel.value : '');
 
   if (!name)  { alert('Please enter a property name.'); return; }
   if (!city)  { alert('Please enter a city.'); return; }
@@ -3582,6 +3597,7 @@ function saveNewProperty() {
   // Save full casino data in PL so it persists across sessions
   if (!PL[key]) PL[key] = {stage:0, history:[], notes:'', contact:''};
   PL[key].cms = cms;
+  PL[key].version = version;
   PL[key].slots = slots;
   PL[key].city = city;
   PL[key].type = type;
@@ -4144,8 +4160,12 @@ function renderDetail(p){
       ALL_CMS.map(function(c){return '<option value="'+c+'"'+(c===p.cms?' selected':'')+'>'+c+'</option>';}).join('')+
     '</select></div>'+
     '<div><div class="dfl" style="margin-bottom:2px;">Version</div>'+
-    '<input class="fi" id="fi-version" list="version-options" type="text" placeholder="✏ Type version here" style="margin-bottom:0;font-size:12px;font-weight:600;background:#fffbeb;border:2px solid #f59e0b;color:#92400e;" value="'+(rec.version||'')+'" onclick="this.select()" onfocus="this.select()">'+
-
+    '<select class="fi" id="fi-version-sel" style="margin-bottom:4px;" onchange="handleVersionSelect(this)">'+
+      '<option value="">Select Version</option>'+
+      ['R6','R5','4.6.4','4.2.3','3.24'].map(function(v){return '<option value="'+v+'"'+((rec.version&&rec.version.trim()===v)?' selected':'')+'>'+v+'</option>';}).join('')+
+      '<option value="__other__" style="color:#0f6e56;font-weight:700;background:#d4f0e5;">✏ Other — Type your version here</option>'+
+    '</select>'+
+    '<input class="fi" id="fi-version" type="text" placeholder="Type version here..." style="display:none;border:2px solid #0f6e56;background:#d4f0e5;" value="" onfocus="this.select()">'+
     '</div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
@@ -4200,17 +4220,10 @@ function doSetStage(state,name,stage){
   const key=state+'||'+name;
   setStage(key,stage);
   // Refresh casino pin color
+  // Rebuild all casino markers for this state to reflect new stage
   if(casinoMarkers[state]){
-    const list=DB[state]||[];
-    const pIdx=list.findIndex(function(p){return p.name===name;});
-    if(pIdx>=0&&casinoMarkers[state][pIdx]){
-      const col=STAGES[stage].color;
-      casinoMarkers[state][pIdx].setIcon(L.divIcon({
-        className:'',
-        html:'<div style="width:16px;height:16px;border-radius:50%;background:'+col+';border:2.5px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);cursor:pointer;"></div>',
-        iconSize:[16,16],iconAnchor:[8,8]
-      }));
-    }
+    clearCasinoMarkers();
+    buildCasinoMarkers(state);
   }
   refreshStateMarkers();
   const p=curList[curIdx];
@@ -4230,7 +4243,11 @@ function saveRecord(state,name){
   PL[key].version = (vSel && vSel.value && vSel.value !== '__other__') ? vSel.value : (vInput ? vInput.value : '');
   PL[key].slots=Math.max(0,parseInt(document.getElementById('fi-slots').value)||0);
   PL[key].tables=Math.max(0,parseInt(document.getElementById('fi-tables').value)||0);
+  if(document.getElementById('fi-address')) PL[key].address=document.getElementById('fi-address').value;
   savePL();
+  // Force immediate push to JSONBin (don't wait for debounce)
+  if(pendingSave) { clearTimeout(pendingSave); pendingSave=null; }
+  pushCloudPL();
   // Apply overrides to the in-memory casino object immediately
   const list=DB[state]||[];
   const idx=list.findIndex(function(x){return x.name===name;});
@@ -4242,7 +4259,14 @@ function saveRecord(state,name){
   }
   if(curState===state)renderPanel();
   const msg=document.getElementById('saved-msg');
-  if(msg){msg.style.display='block';setTimeout(function(){msg.style.display='none';},1500);}
+  if(msg){
+    msg.textContent='⟳ Saving...';
+    msg.style.display='block';
+    setTimeout(function(){
+      msg.textContent='✓ Saved';
+      setTimeout(function(){msg.style.display='none';},1200);
+    },600);
+  }
   // Push to Salesforce if connected and we have an Opportunity ID
   if(sfToken && PL[key] && PL[key].sfOppId) {
     sfPushRecord(PL[key].sfOppId, PL[key]);
