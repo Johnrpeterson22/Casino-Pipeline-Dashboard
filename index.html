@@ -3058,7 +3058,7 @@ function sfFetchData() {
     savePL();
     sfIndicator('connected');
     // Rebuild ALL state markers to reflect new SF stages
-    refreshStateMarkers();
+    refreshStateMarkers();refreshCanadaMarkers();
     // Rebuild casino pins for any state currently open
     if (curState) {
       clearCasinoMarkers();
@@ -3612,7 +3612,7 @@ function saveNewProperty() {
   document.getElementById('add-prop-dlg').remove();
 
   // Refresh map
-  refreshStateMarkers();
+  refreshStateMarkers();refreshCanadaMarkers();
   if (curState === state || curState === 'CA:'+state.replace('CA:','')) {
     clearCasinoMarkers();
     if (state.startsWith('CA:')) buildCanadaCasinoMarkers(state.replace('CA:',''));
@@ -3716,7 +3716,7 @@ function fetchCloudPL(silent){
       setSyncIndicator('synced');
       rebuildCustomProperties();
       if(curState)renderPanel();
-      refreshStateMarkers();
+      refreshStateMarkers();refreshCanadaMarkers();
       if(casinoMarkers[curState])buildCasinoMarkers(curState);
     })
     .catch(function(e){
@@ -4014,6 +4014,32 @@ function refreshStateMarkers(){
   });
 }
 
+function refreshCanadaMarkers(){
+  const f=getF();
+  Object.keys(canadaProvMarkers).forEach(function(prov){
+    const {m,r}=canadaProvMarkers[prov];
+    const list=(CANADA_DB[prov]||[]).filter(function(c){
+      const key='CA:'+prov+'||'+c.name;
+      if(PL[key]&&PL[key].deleted)return false;
+      if(f.type&&c.type!==f.type)return false;
+      if(f.cms&&c.cms!==f.cms)return false;
+      if(f.search&&!c.name.toLowerCase().includes(f.search)&&!c.city.toLowerCase().includes(f.search))return false;
+      if(f.stage!==null&&getStage(key)!==f.stage)return false;
+      return true;
+    });
+    const cnt=list.length;
+    const baseCol=scoreToColor(SALES_SCORES[prov])||'#f97316';
+    const col=cnt===0?'#ccc':baseCol;
+    const icon=L.divIcon({
+      className:'',
+      html:'<div style="width:'+(r*2)+'px;height:'+(r*2)+'px;border-radius:50%;background:'+col+';border:2.5px solid rgba(255,255,255,.85);color:#fff;font-weight:700;font-size:'+(cnt>20?'9':cnt>10?'10':'11')+'px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 7px rgba(0,0,0,.35);opacity:'+(cnt===0?0.3:1)+';">'+cnt+'</div>',
+      iconSize:[r*2,r*2],iconAnchor:[r,r]
+    });
+    m.setIcon(icon);
+    canadaProvMarkers[prov].count=cnt;
+  });
+}
+
 // ── FILTERS ───────────────────────────────────────────────────────────────────
 function getF(){
   const sv=document.getElementById('s-stage').value;
@@ -4201,7 +4227,7 @@ function deleteProperty(state,name){
     clearCasinoMarkers();
     buildCasinoMarkers(state);
   }
-  refreshStateMarkers();
+  refreshStateMarkers();refreshCanadaMarkers();
 }
 
 function handleVersionSelect(sel) {
@@ -4225,7 +4251,7 @@ function doSetStage(state,name,stage){
     clearCasinoMarkers();
     buildCasinoMarkers(state);
   }
-  refreshStateMarkers();
+  refreshStateMarkers();refreshCanadaMarkers();
   const p=curList[curIdx];
   if(p&&p.state===state&&p.name===name) renderDetail(p);
 }
@@ -4313,7 +4339,7 @@ document.getElementById('d-hide').addEventListener('click',function(){
   document.getElementById('list').style.display='';
   curIdx=null;
   if(casinoMarkers[curState]){clearCasinoMarkers();buildCasinoMarkers(curState);}
-  refreshStateMarkers();
+  refreshStateMarkers();refreshCanadaMarkers();
   renderPanel();
 });
 document.getElementById('d-x').addEventListener('click',function(){
@@ -4370,7 +4396,7 @@ stSel.addEventListener('change',function(){
   }
 });
 
-function onFilter(){refreshStateMarkers();if(curState)renderPanel();}
+function onFilter(){refreshStateMarkers();refreshCanadaMarkers();if(curState)renderPanel();}
 document.getElementById('s-search').addEventListener('input',onFilter);
 document.getElementById('s-type').addEventListener('change',onFilter);
 document.getElementById('s-cms').addEventListener('change',onFilter);
@@ -4382,7 +4408,7 @@ document.getElementById('btn-restore').addEventListener('click',function(){
   if(!confirm('Restore '+hidden.length+' hidden propert'+(hidden.length===1?'y':'ies')+'?'))return;
   hidden.forEach(function(k){delete PL[k].deleted;});
   savePL();
-  refreshStateMarkers();
+  refreshStateMarkers();refreshCanadaMarkers();
   if(curState){clearCasinoMarkers();buildCasinoMarkers(curState);renderPanel();}
   alert('Done — '+hidden.length+' propert'+(hidden.length===1?'y':'ies')+' restored.');
 });
